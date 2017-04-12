@@ -1,51 +1,19 @@
 // ? HOW much info about an instance's state can I get from the API?
 // Does Python have promises? If not, maybe Node/Express(? or the sinatra/flask equivalent for node) would be better for this.
 
-import express from 'express';
+import express from 'express'
 import sqlite3 from 'sqlite3'
+import bodyParser from 'body-parser'
  
-const app = express();
-const port = process.env.PORT || 3000;
+const app = express()
+const port = process.env.PORT || 3000
 
-app.get('/pulls/:id', async (req, res, next) => {
-  try {
-    console.log(req.params.id);
-    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.id, (err, row) => {
-      console.log(err, row);
-      res.setHeader('Content-Type', 'application/json')
-      res.send(JSON.stringify(row))
-    })
-  } catch (err) {
-    next(err);
-  }
-});
- 
-const db = new sqlite3.Database("db.sqlite")
-Promise.resolve()
-  // First, try connect to the database 
-  .then(() => app.listen(port))
-  .catch(err => console.error(err.stack))
-  // Finally, launch Node.js app 
-
-
-// sqlite db: 
-//   pulls table:
-        // pr_id (fk)
-        // pr_name (includes slashes)
-        // hostname (normalized to be valid for AWS)
-        // db_name (normalized to be valid for RDS, might entail truncation)
-        // db_username (normalized to be valid for RDS, might entail truncation)
-        // instance state: { stopped, setting-up, deploying, created }
-        // instance ID ??? need for destroy APIs??
-        // route53 url
-        // SHA of most recent deploy
-        // deploying: bool
+app.use(bodyParser.json()) // for parsing application/json
 
 // GET pulls/:pull_id
 //   should connect a websocket
 //   returns: current state of all activities, as derived by current progress
 //   returns: { state: inactive|booting|setting-up|deploying|finished, data: { url: ... } }
-
 // (client: on success, call GET, open a websocket)
 // Creating seminar-jb-lo-index...
     // EC2: created|setting up...|deploying...| :green-check-mark: created
@@ -53,11 +21,43 @@ Promise.resolve()
     // RDS DB: :green-check-mark: created
     // RDS user: :green-check-mark: created
     // ^ after this: Done! For 1 second, then replace with `Review app: [seminar-jb-lo-index](url)`
+app.get('/pulls/:prId', (req, res, next) => {
+  try {
+    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.prId, (err, row) => {
+      if (err) console.log(err)
+      res.setHeader('Content-Type', 'application/json')
+      res.send(JSON.stringify(row))
+    })
+  } catch (err) {
+    next(err)
+  }
+})
 
 // POST pulls (with :pull_id)
 //   GET or CREATE w sqlite db.
 //   spawn background worker that periodically posts websocket messages
 //   returns: success|fail
+app.post('/pulls', (req, res, next) => {
+  try {
+    if (!req.body.prId) {
+      res.status(400).send({ error: 'POST request must include prId' })
+    } else {
+      db.run(`INSERT INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
+        if (err) res.status(500).send({ error: err })
+        res.sendStatus(201)
+      })
+    }
+  } catch (err) {
+    next(err)
+  }
+})
+
+const db = new sqlite3.Database("db.sqlite")
+Promise.resolve()
+  // First, try connect to the database 
+  .then(() => app.listen(port))
+  .catch(err => console.error(err.stack))
+  // Finally, launch Node.js app 
 
 // POST deploys (with :pull_id)
 //   CREATE w sqlite db
