@@ -1,0 +1,142 @@
+#!/usr/bin/env bash
+
+LOG_DIR=$HOME/code/picasso/scripts/logs
+mkdir -p $LOG_DIR
+
+REGION="us-east-1"  # must match layer region.
+STACK_VPCSTAGING="fd6cc57c-02fb-433c-bf04-00c1dfc7acdc"
+LAYER_SEMINAR_REVIEW="3b6657ea-ee38-4586-8f9a-a404366e771b"
+
+function checkPrerequisites {
+  echo "checkPrerequisites"
+  # TODO: requires jq
+  # brew install jq
+  # brew upgrade awscli
+}
+
+function describeInstances {
+  aws opsworks --region $REGION describe-instances --layer-id $LAYER_SEMINAR_REVIEW
+}
+
+function checkIfInstanceExists {
+  # arg: hostname
+  local instances=$(describeInstances)
+  echo $instances | jq '.Instances | map(.Hostname) | contains(["seminar-review1"])'
+}
+
+function createInstance {
+  # arg: hostname
+  aws opsworks --region $REGION create-instance \
+    --hostname $1 \
+    --stack-id $STACK_VPCSTAGING \
+    --layer-ids $LAYER_SEMINAR_REVIEW \
+    --instance-type "m3.large"
+}
+
+function deleteInstance {
+  # arg: opsworks instanceId
+  aws opsworks --region $REGION delete-instance --instance-id $1
+}
+
+function createDNSRecord {
+  echo "creating route53 record"
+}
+
+function deleteDNSRecord {
+  echo "removing route53 record"
+}
+
+function createDB {
+  echo "creating DB on existing RDS instance, cloning data"
+  aws lambda invoke \
+    --invocation-type RequestResponse \
+    --function-name ProcessDynamoDBStream \
+    --region us-east-1 \
+    --payload "{\"dbName\":\"seminar-review1\"}" \
+    --profile adminuser \
+    outputfile.txt
+  # "look into pointing API Gateway at a Lambda function that has the ability to connect to your RDS database and run queries"
+  # mysql -h vpc-seminar-staging.cfgr60m9hv2x.us-west-2.rds.amazonaws.com -u minerva_seminar -p4d7EhK4G review_features_lo_detail_page
+  # create database review_features_lo_detail_page;
+  # GRANT ALL PRIVILEGES ON review_features_lo_detail_page.* TO 'minerva_seminar'@'%';
+  # source seminar_env/bin/activate; cd seminar; DJANGO_SETTINGS_MODULE=config.environments.staging server/manage.py restore_database --latest mke
+  # source seminar_env/bin/activate; cd seminar; DJANGO_SETTINGS_MODULE=config.environments.staging server/manage.py sanitize_for_staging
+
+  #run this script, targeting that database. basically we'll fork it
+}
+
+function startInstance {
+  # arg: opsworks instanceId
+  echo "starting instance"
+  aws opsworks --region $REGION start-instance --instance-id b279e9d4-d9d0-4609-925e-3b21782dabeb
+}
+
+function createApp {
+  echo "createApp"
+  # env variables to override:
+  # name: review_features_lo_detail_page
+  # SEMINAR_URL: https://seminar_review_features_lo_detail_page.minervaproject.com
+  # DATABASE_DB: review_features_lo_detail_page
+}
+
+function deleteApp {
+  echo "deleteApp"
+  # http://docs.aws.amazon.com/cli/latest/reference/opsworks/delete-app.html
+}
+
+function deployApp {
+  echo "deploying"
+  aws opsworks --region us-east-1 create-deployment \
+    --stack-id $STACK_VPCSTAGING \
+    --app-id 307be5c8-d55d-47b5-bd6e-7bd417c6c7eb \
+    --command "{\"Name\":\"deploy\"}" \
+    --custom-json "{}"
+
+  #http://docs.aws.amazon.com/cli/latest/reference/opsworks/create-deployment.html?highlight=layer
+  #    create-deployment
+  #    --stack-id <value>
+  #    [--app-id <value>]
+  #    [--instance-ids <value>]
+  #    [--layer-ids <value>]
+  #    --command <value>
+  #    [--comment <value>]
+  #    [--custom-json <value>]
+  #    [--cli-input-json <value>]
+
+}
+
+function updateLayer {
+  echo "updateLayer"
+  # will copy custom JSON, update, then push up to layer.
+  # goal is to add information about deployment.
+  # http://docs.aws.amazon.com/cli/latest/reference/opsworks/update-layer.html
+}
+
+
+# checkPrerequisites
+
+# instanceExists=$(checkIfInstanceExists)
+
+# if [[ $instanceExists = false ]]; then
+# #  createInstance
+#   updateLayer
+#   startInstance
+#   createDNSRecord
+#   createDB
+# else
+#   echo "instance already exists"
+# fi
+
+# deployApp
+
+deleteDNSRecord
+
+
+# --------- SCRATCH ---------
+
+function suggestHostname {
+   # Get the next suggested hostname, e.g., "seminar-review2"
+   aws opsworks --region $REGION get-hostname-suggestion --layer-id $LAYER_SEMINAR_REVIEW | jq -r '.Hostname'
+}
+
+# ---------------------------
