@@ -20,7 +20,7 @@ npm install
 PATH="/home/ubuntu/qa-instances/node_modules/.bin:$PATH"
 
 # Start DB
-babel-node create-db.js
+babel-node scripts/create-db.js
 
 # Start app
 npm run build
