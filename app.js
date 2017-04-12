@@ -76,8 +76,10 @@
         // create_db(db_name)
             // THEN create_db_user(db_name)
                 // THEN GRANT privileges to user over db.
-    // THEN:
+    // THEN, IN PARALLEL:
         // create deployment. custom JSON will include db_name, db_user as env variables.
+        // clone-mke
+            // THEN sanitize
 
 // def destroy_review_app(pr_id):
     // be able to destroy partial app - don't break on failure.
