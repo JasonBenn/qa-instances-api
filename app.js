@@ -1,6 +1,33 @@
 // ? HOW much info about an instance's state can I get from the API?
 // Does Python have promises? If not, maybe Node/Express(? or the sinatra/flask equivalent for node) would be better for this.
 
+import express from 'express';
+import sqlite3 from 'sqlite3'
+ 
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.get('/pulls/:id', async (req, res, next) => {
+  try {
+    console.log(req.params.id);
+    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.id, (err, row) => {
+      console.log(err, row);
+      res.setHeader('Content-Type', 'application/json')
+      res.send(JSON.stringify(row))
+    })
+  } catch (err) {
+    next(err);
+  }
+});
+ 
+const db = new sqlite3.Database("db.sqlite")
+Promise.resolve()
+  // First, try connect to the database 
+  .then(() => app.listen(port))
+  .catch(err => console.error(err.stack))
+  // Finally, launch Node.js app 
+
+
 // sqlite db: 
 //   pulls table:
         // pr_id (fk)
