@@ -125,23 +125,5 @@ Promise.resolve()
     // create deployment API - always use latest SHA
     // pass
 
-// TASK: print pulls table. use jason's table command discovery.
-// TASKs: one for each command, should take as args pr_id. that would be v helpful!
-
-// chrome extension:
-// should be able to extract URL PR ID, latest SHA
-// HTML for rendering state of deploying/destroying app
-// One fat row for:
-    // Route53 record: :green-check-mark: created
-    // RDS DB: :green-check-mark: created
-    // RDS user: :green-check-mark: created
-    // EC2: stopping... | :green-check-mark: created
-    // ^ after this: Done! For 1 second, then remove row.
-// Two skinny rows for: 
-    // Review app: [seminar-jb-lo-index](url) at #da135c
-    // [(Re)deploy latest commit] (say "Redeploy" if already at latest, otherwise say deploy)
-    // [Create review app for this PR]
-
 // Also: update local state and render with websocket messages.
 // Set it up so that you pass a blob of data and render the whole thing 
-

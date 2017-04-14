@@ -10,7 +10,7 @@ sudo apt-get install nodejs
 sudo npm install -g npm
 
 # Dumb solution to cloning a private repo: use your own login credentials
-git clone https://github.com/minervaproject/qa-instances.git
+git clone https://github.com/minervaproject/qa-instances-api.git
 
 # Install dependencies
 sudo apt-get install sqlite3
