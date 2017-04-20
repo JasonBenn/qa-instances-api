@@ -55,7 +55,6 @@ function createDB {
     --payload "{\"dbName\":\"seminar-review1\"}" \
     --profile adminuser \
     outputfile.txt
-  # "look into pointing API Gateway at a Lambda function that has the ability to connect to your RDS database and run queries"
   # mysql -h vpc-seminar-staging.cfgr60m9hv2x.us-west-2.rds.amazonaws.com -u minerva_seminar -p4d7EhK4G review_features_lo_detail_page
   # create database review_features_lo_detail_page;
   # GRANT ALL PRIVILEGES ON review_features_lo_detail_page.* TO 'minerva_seminar'@'%';
