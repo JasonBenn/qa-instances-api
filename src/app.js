@@ -5,6 +5,7 @@ import express from 'express'
 import sqlite3 from 'sqlite3'
 import bodyParser from 'body-parser'
 import { rebroadcastCmds } from './utils'
+import path from 'path'
  
 const port = process.env.PORT || 3000
 
@@ -20,7 +21,7 @@ io.on('connection', function(socket){
 app.use(bodyParser.json()) // for parsing application/json
 
 app.get('/', function(req, res){
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(path.resolve('./index.html'));
 })
 
 app.get('/pulls', (req, res, next) => {
