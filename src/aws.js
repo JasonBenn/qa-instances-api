@@ -12,20 +12,12 @@ const createDB = () => {
   });
 }
 
-// TODO: sanitize the DB.
-// source seminar_env/bin/activate; cd seminar; DJANGO_SETTINGS_MODULE=config.environments.staging server/manage.py sanitize_for_staging
-
-// The above basically works.
-// Next step: tear them down.
-// But first, I need to get an instance started, and deployed.
-// Just charge through the creation of everything first.
-// Later I can tear down and test up/down.
 // createDB()
 
-// The region needs to be set manually, for some reason the env set in ~/.aws isn't taking.
 aws.config.update({ region: 'us-east-1' })
 const ec2 = new aws.EC2()
 const opsworks = new aws.OpsWorks()
+const route53 = new aws.Route53()
 
 const waitForInstanceExists = instanceId => {
   // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#instanceExists-waiter
@@ -43,6 +35,7 @@ const waitForInstanceExists = instanceId => {
 
 const STACK_VPCSTAGING = "fd6cc57c-02fb-433c-bf04-00c1dfc7acdc"
 const LAYER_SEMINAR_REVIEW = "3b6657ea-ee38-4586-8f9a-a404366e771b"
+const APP_SEMINAR_REVIEW = "24f985e0-1e70-4059-b0f0-aa8d43483d60"
 
 const defaultAwsCallback = (err, data) => {
   if (err) console.log(err, err.stack)
@@ -138,19 +131,27 @@ const stopInstance = instanceId => {
 const deployInstance = instanceId => {
   opsworks.createDeployment({
     StackId: STACK_VPCSTAGING,
+    AppId: APP_SEMINAR_REVIEW,
     InstanceIds: [instanceId],
     Command: {
       Name: "execute_recipes",
       Args: {
-        recipes: ["minerva-base-box::deploy"]
+        recipes: [
+          "seminar::deploy_seminar_review",
+          "seminar::sanitize",
+          "seminar::service_seminar_review",
+          "seminar::singletons_seminar_review"
+        ]
       }
     },
     CustomJson: JSON.stringify({
       deploy: {
         seminar_review: {
-          environment_variables: {
-            SEMINAR_URL: "https://seminar_review_features_lo_detail_page.minervaproject.com",
-            DATABASE_DB: "review_features_lo_detail_page"
+          "branch": "jb/qa-instances",  // Temporary.
+          domain: "qa-features-lo-detail-page.minervaproject.com",
+          seminar_url: "https://qa-features-lo-detail-page.minervaproject.com",
+          database: {
+            db: "review_features_lo_detail_page"
           }
         }
 
@@ -159,16 +160,32 @@ const deployInstance = instanceId => {
   }, defaultAwsCallback)
 }
 
-deployInstance(instanceId)
+// deployInstance(instanceId)
 // pollInstanceState(instanceId, "online")
 
+const MP_HOSTED_ZONE_ID = "Z2ETWILA1953Q3"
+const instanceIp = "54.213.81.155"
+const instanceDomainName = "qa-features-lo-detail-page.minervaproject.com"
 
+const createRoute53Record = (instanceDomainName, instanceIp) => {
+  route53.changeResourceRecordSets({
+    ChangeBatch: {
+      Changes: [{
+        Action: "CREATE",
+        ResourceRecordSet: {
+          Name: instanceDomainName + ".",
+          ResourceRecords: [{ Value: instanceIp }],
+          TTL: 60,
+          Type: "A"
+        }
+      }],
+      Comment: "QA instance"
+    }, 
+    HostedZoneId: MP_HOSTED_ZONE_ID
+  }, defaultAwsCallback)
+}
 
+// createRoute53Record(instanceDomainName, instanceIp)
 
-
-
-
-
-
-
+// TODO: const deleteRoute53Record
 
