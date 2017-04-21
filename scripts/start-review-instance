@@ -46,24 +46,6 @@ function deleteDNSRecord {
   echo "removing route53 record"
 }
 
-function createDB {
-  echo "creating DB on existing RDS instance, cloning data"
-  aws lambda invoke \
-    --invocation-type RequestResponse \
-    --function-name ProcessDynamoDBStream \
-    --region us-east-1 \
-    --payload "{\"dbName\":\"seminar-review1\"}" \
-    --profile adminuser \
-    outputfile.txt
-  # mysql -h vpc-seminar-staging.cfgr60m9hv2x.us-west-2.rds.amazonaws.com -u minerva_seminar -p4d7EhK4G review_features_lo_detail_page
-  # create database review_features_lo_detail_page;
-  # GRANT ALL PRIVILEGES ON review_features_lo_detail_page.* TO 'minerva_seminar'@'%';
-  # source seminar_env/bin/activate; cd seminar; DJANGO_SETTINGS_MODULE=config.environments.staging server/manage.py restore_database --latest mke
-  # source seminar_env/bin/activate; cd seminar; DJANGO_SETTINGS_MODULE=config.environments.staging server/manage.py sanitize_for_staging
-
-  #run this script, targeting that database. basically we'll fork it
-}
-
 function startInstance {
   # arg: opsworks instanceId
   echo "starting instance"
