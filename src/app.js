@@ -19,6 +19,23 @@ io.on('connection', function(socket){
 
 app.use(bodyParser.json()) // for parsing application/json
 
+app.get('/', function(req, res){
+  res.sendFile(__dirname + '/index.html');
+})
+
+app.get('/pulls', (req, res, next) => {
+  try {
+    io.emit('pulls', "fetching all pulls...");
+    db.all(`SELECT * FROM pulls`, undefined, (err, rows) => {
+      if (err) return res.status(500).send({ error: err })
+      res.setHeader('Content-Type', 'application/json')
+      res.send(JSON.stringify({ data: rows }))
+    })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // GET pulls/:pull_id
 //   should connect a websocket
 //   returns: current state of all activities, as derived by current progress
