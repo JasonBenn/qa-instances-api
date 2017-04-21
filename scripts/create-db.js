@@ -10,7 +10,7 @@ const command = `
     state TEXT, -- { stopped|setting-up|deploying|created }
     db_username TEXT,
     url TEXT, -- url
-    SHA TEXT, -- of most recent deploy
+    sha TEXT, -- of most recent deploy
     deploying BOOLEAN,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
