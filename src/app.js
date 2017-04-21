@@ -4,9 +4,18 @@
 import express from 'express'
 import sqlite3 from 'sqlite3'
 import bodyParser from 'body-parser'
+import { rebroadcastCmds } from './utils'
  
-const app = express()
 const port = process.env.PORT || 3000
+
+const app = express()
+var http = require('http').Server(app)
+var io = require('socket.io')(http)
+
+io.on('connection', function(socket){
+  console.log('connected!');
+  rebroadcastCmds(socket, io)
+})
 
 app.use(bodyParser.json()) // for parsing application/json
 
