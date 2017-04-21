@@ -55,7 +55,8 @@ app.post('/pulls', (req, res, next) => {
 const db = new sqlite3.Database("db.sqlite")
 Promise.resolve()
   // First, try connect to the database 
-  .then(() => app.listen(port))
+  .then(() => http.listen(port))
+  .then(() => console.log('listening on *:' + port))
   .catch(err => console.error(err.stack))
   // Finally, launch Node.js app 
 
