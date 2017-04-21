@@ -47,12 +47,13 @@ app.get('/pulls', (req, res, next) => {
     // RDS DB: :green-check-mark: created
     // RDS user: :green-check-mark: created
     // ^ after this: Done! For 1 second, then replace with `Review app: [seminar-jb-lo-index](url)`
+
 app.get('/pulls/:prId', (req, res, next) => {
   try {
     db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.prId, (err, row) => {
-      if (err) console.log(err)
+      if (err) return res.status(500).send({ error: err })
       res.setHeader('Content-Type', 'application/json')
-      res.send(JSON.stringify(row))
+      res.send(JSON.stringify({ data: row }))
     })
   } catch (err) {
     next(err)
@@ -69,7 +70,7 @@ app.post('/pulls', (req, res, next) => {
       res.status(400).send({ error: 'POST request must include prId' })
     } else {
       db.run(`INSERT INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
-        if (err) res.status(500).send({ error: err })
+        if (err) return res.status(500).send({ error: err })
         res.sendStatus(201)
       })
     }
