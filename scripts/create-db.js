@@ -12,7 +12,8 @@ const command = `
     url TEXT, -- url
     sha TEXT, -- of most recent deploy
     deploying BOOLEAN,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(pr_id)
   );
 `
 

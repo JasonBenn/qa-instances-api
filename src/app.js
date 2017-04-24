@@ -71,8 +71,9 @@ app.post('/pulls', (req, res, next) => {
     if (!req.body.prId) {
       res.status(400).send({ error: 'POST request must include prId' })
     } else {
-      db.run(`INSERT INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
+      db.run(`INSERT OR IGNORE INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
         if (err) return res.status(500).send({ error: err })
+        console.log("row", row);
         res.status(201).send({ data: row })
       })
     }
