@@ -41,6 +41,7 @@
         var socket = io();
         $('form').submit(function(){
           var message = $('#m').val()
+          
           socket.emit('cmd', message);
           $('#m').val('');
           $('#messages').append('<li>'+message+'</li>')
