@@ -7,7 +7,9 @@ import bodyParser from 'body-parser'
 import { rebroadcastCmds } from './utils'
 import path from 'path'
 import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record } from './aws'
- 
+import logger from 'morgan-body';
+
+
 const port = process.env.PORT || 3000
 
 const app = express()
@@ -26,6 +28,7 @@ const logErrors = (err, req, res, next) => {
 
 app.use(bodyParser.json())
 app.use(logErrors)
+logger(app)
 
 app.get('/', function(req, res){
   res.sendFile(path.resolve('./index.html'));
