@@ -4,11 +4,11 @@ const command = `
   CREATE TABLE pulls (
     id INTEGER PRIMARY KEY,
     pr_id INTEGER, -- should match github
-    status TEXT,
     pr_name TEXT, -- should match github
     hostname TEXT, -- (normalized to be valid for AWS)
     db_name TEXT, -- normalized to be valid for RDS, might entail truncation
-    state TEXT, -- { stopped|setting-up|deploying|created }
+    instanceState TEXT, -- starting|online|stopping (when no row is found, instance is assumed offline)
+    deployState TEXT, -- stopped|setting-up|deploying|created
     db_username TEXT,
     url TEXT, -- url
     sha TEXT, -- of most recent deploy
