@@ -73,7 +73,7 @@ app.post('/pulls', (req, res, next) => {
     } else {
       db.run(`INSERT INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
         if (err) return res.status(500).send({ error: err })
-        res.sendStatus(201)
+        res.status(201).send({ data: row })
       })
     }
   } catch (err) {
