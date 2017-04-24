@@ -90,7 +90,7 @@ app.post('/pulls', (req, res, next) => {
     if (!prId) {
       res.status(400).send({ error: 'POST request must include prId' })
     } else {
-      db.run(`INSERT OR IGNORE INTO pulls (pr_id) VALUES (?)`, prId, (err, row) => {
+      db.run(`INSERT OR IGNORE INTO pulls (pr_id, status) VALUES (?, "offline")`, prId, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
         res.status(201)
         sendRowState(prId, res, next)
