@@ -6,6 +6,7 @@ import sqlite3 from 'sqlite3'
 import bodyParser from 'body-parser'
 import { rebroadcastCmds } from './utils'
 import path from 'path'
+import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record } from 'aws'
  
 const port = process.env.PORT || 3000
 
@@ -73,6 +74,21 @@ app.post('/pulls', (req, res, next) => {
       db.run(`INSERT INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
         if (err) return res.status(500).send({ error: err })
         res.sendStatus(201)
+      })
+    }
+  } catch (err) {
+    next(err)
+  }
+})
+
+app.delete('/pulls/:prId', (req, res, next) => {
+  try {
+    if (!req.body.prId) {
+      res.status(400).send({ error: 'POST request must include prId' })
+    } else {
+      db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.body.prId, (err, row) => {
+        if (err) return res.status(500).send({ error: err })
+        res.sendStatus(204)
       })
     }
   } catch (err) {
