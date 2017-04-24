@@ -83,10 +83,10 @@ app.post('/pulls', (req, res, next) => {
 
 app.delete('/pulls/:prId', (req, res, next) => {
   try {
-    if (!req.body.prId) {
-      res.status(400).send({ error: 'POST request must include prId' })
+    if (!req.params.prId) {
+      res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
-      db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.body.prId, (err, row) => {
+      db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.params.prId, (err, row) => {
         if (err) return res.status(500).send({ error: err })
         res.sendStatus(204)
       })
