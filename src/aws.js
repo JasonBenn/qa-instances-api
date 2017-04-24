@@ -186,8 +186,6 @@ export const startInstanceServices = (instanceId, domainName, dbName) => {
           seminar_url: "https://" + instanceDomainName,
           database: { db: dbName }
         }
-
-      }
       }
     })
   }, defaultAwsCallback)

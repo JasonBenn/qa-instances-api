@@ -6,7 +6,7 @@ import sqlite3 from 'sqlite3'
 import bodyParser from 'body-parser'
 import { rebroadcastCmds } from './utils'
 import path from 'path'
-import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record } from 'aws'
+import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record } from './aws'
  
 const port = process.env.PORT || 3000
 
