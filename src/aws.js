@@ -1,18 +1,20 @@
 import { execFile } from 'child_process'
 import aws from 'aws-sdk'
 
-const createDB = () => {
+const dbName = "review_features_lo_detail_page"
+
+export const createDB = (dbName) => {
   // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
   execFile(process.cwd() + "/scripts/create-qa-instance-db.sh", null, {
     env: {
-      dbName: "review_features_lo_detail_page"     
+      dbName: dbName
     }
   }, function(error, stdout, stderr) {
     console.log(error, stdout, stderr);
   });
 }
 
-// createDB()
+// createDB(dbName)
 
 aws.config.update({ region: 'us-east-1' })
 const ec2 = new aws.EC2()
@@ -47,7 +49,7 @@ const defaultAwsCallback = (err, data) => {
 const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34'
 
 // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
-const createInstance = () => {
+export const createInstance = () => {
   opsworks.createInstance({
     StackId: STACK_VPCSTAGING,
     LayerIds: [LAYER_SEMINAR_REVIEW],
@@ -64,7 +66,7 @@ const createInstance = () => {
 
 // createInstance()
 
-const deleteInstance = instanceId => {
+export const deleteInstance = instanceId => {
   opsworks.deleteInstance({
     InstanceId: instanceId
   }, defaultAwsCallback)
@@ -72,7 +74,7 @@ const deleteInstance = instanceId => {
 
 // deleteInstance(instanceId)
 
-const startInstance = instanceId => {
+export const startInstance = instanceId => {
   // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#startInstance-property
   opsworks.startInstance({
     InstanceId: instanceId
@@ -118,7 +120,7 @@ const pollInstanceState = (instanceId, ignoreFirstState = "", callCount = 0, cur
 // pollInstanceState(instanceId)
 
 // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#stopInstance-property
-const stopInstance = instanceId => {
+export const stopInstance = instanceId => {
   opsworks.stopInstance({
     InstanceId: instanceId
   }, defaultAwsCallback)
@@ -128,7 +130,8 @@ const stopInstance = instanceId => {
 // pollInstanceState(instanceId, "online")
 
 // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createDeployment-property
-const deployInstance = instanceId => {
+export const deployInstance = (instanceId, instanceDomainName, dbName) => {
+  // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
   opsworks.createDeployment({
     StackId: STACK_VPCSTAGING,
     AppId: APP_SEMINAR_REVIEW,
@@ -138,6 +141,37 @@ const deployInstance = instanceId => {
       Args: {
         recipes: [
           "seminar::deploy_seminar_review",
+        ]
+      }
+    },
+    CustomJson: JSON.stringify({
+      deploy: {
+        seminar_review: {
+          "branch": "jb/qa-instances",  // Temporary.
+          domain: instanceDomainName,
+          seminar_url: "https://" + instanceDomainName,
+          database: { db: dbName }
+        }
+
+      }
+    })
+  }, defaultAwsCallback)
+}
+
+const instanceDomainName = "qa-features-lo-detail-page.minervaproject.com"
+// deployInstance(instanceId, instanceDomainName, dbName)
+// pollInstanceState(instanceId, "online")
+
+export const startInstanceServices = (instanceId, domainName, dbName) => {
+  // This is part 2 of the deploy step. These recipes require that a database is ready.
+  opsworks.createDeployment({
+    StackId: STACK_VPCSTAGING,
+    AppId: APP_SEMINAR_REVIEW,
+    InstanceIds: [instanceId],
+    Command: {
+      Name: "execute_recipes",
+      Args: {
+        recipes: [
           "seminar::sanitize",
           "seminar::service_seminar_review",
           "seminar::singletons_seminar_review"
@@ -148,26 +182,24 @@ const deployInstance = instanceId => {
       deploy: {
         seminar_review: {
           "branch": "jb/qa-instances",  // Temporary.
-          domain: "qa-features-lo-detail-page.minervaproject.com",
-          seminar_url: "https://qa-features-lo-detail-page.minervaproject.com",
-          database: {
-            db: "review_features_lo_detail_page"
-          }
+          domain: instanceDomainName,
+          seminar_url: "https://" + instanceDomainName,
+          database: { db: dbName }
         }
 
+      }
       }
     })
   }, defaultAwsCallback)
 }
 
-// deployInstance(instanceId)
+// deployInstance(instanceId, instanceDomainName, dbName)
 // pollInstanceState(instanceId, "online")
 
 const MP_HOSTED_ZONE_ID = "Z2ETWILA1953Q3"
 const instanceIp = "54.213.81.155"
-const instanceDomainName = "qa-features-lo-detail-page.minervaproject.com"
 
-const createRoute53Record = (instanceDomainName, instanceIp) => {
+export const createRoute53Record = (instanceDomainName, instanceIp) => {
   route53.changeResourceRecordSets({
     ChangeBatch: {
       Changes: [{
