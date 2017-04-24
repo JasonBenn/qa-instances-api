@@ -19,7 +19,7 @@ io.on('connection', function(socket){
   rebroadcastCmds(socket, io)
 })
 
-app.use(bodyParser.json()) // for parsing application/json
+app.use(bodyParser.json())
 
 app.get('/', function(req, res){
   res.sendFile(path.resolve('./index.html'));
@@ -50,16 +50,24 @@ app.get('/pulls', (req, res, next) => {
     // RDS user: :green-check-mark: created
     // ^ after this: Done! For 1 second, then replace with `Review app: [seminar-jb-lo-index](url)`
 
-app.get('/pulls/:prId', (req, res, next) => {
+const defaultErrorHandler = (err, res) => {
+  return res.status(500).send(JSON.stringify({ error: err }))
+}
+
+const sendRowState = (prId, res) => {
   try {
     db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.prId, (err, row) => {
-      if (err) return res.status(500).send({ error: err })
+      if (err) return defaultErrorHandler(err, res)
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: row }))
     })
   } catch (err) {
-    next(err)
+    defaultErrorHandler(err, res)
   }
+}
+
+app.get('/pulls/:prId', (req, res, next) => {
+  sendRowState(req.params.prId, res)
 })
 
 // POST pulls (with :pull_id)
@@ -68,17 +76,18 @@ app.get('/pulls/:prId', (req, res, next) => {
 //   returns: success|fail
 app.post('/pulls', (req, res, next) => {
   try {
-    if (!req.body.prId) {
+    var prId = req.body.prId
+    if (!prId) {
       res.status(400).send({ error: 'POST request must include prId' })
     } else {
-      db.run(`INSERT OR IGNORE INTO pulls (pr_id) VALUES (?)`, req.body.prId, (err, row) => {
-        if (err) return res.status(500).send({ error: err })
-        console.log("row", row);
-        res.status(201).send({ data: row })
+      db.run(`INSERT OR IGNORE INTO pulls (pr_id) VALUES (?)`, prId, (err, row) => {
+        if (err) return defaultErrorHandler(err, res)
+        res.status(201)
+        sendRowState(prId, res)
       })
     }
   } catch (err) {
-    next(err)
+    defaultErrorHandler(err, res)
   }
 })
 
@@ -88,22 +97,20 @@ app.delete('/pulls/:prId', (req, res, next) => {
       res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
       db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.params.prId, (err, row) => {
-        if (err) return res.status(500).send({ error: err })
+        if (err) return defaultErrorHandler(err, res)
         res.sendStatus(204)
       })
     }
   } catch (err) {
-    next(err)
+    defaultErrorHandler(err, res)
   }
 })
 
 const db = new sqlite3.Database("db.sqlite")
 Promise.resolve()
-  // First, try connect to the database 
   .then(() => http.listen(port))
   .then(() => console.log('listening on *:' + port))
   .catch(err => console.error(err.stack))
-  // Finally, launch Node.js app 
 
 // POST deploys (with :pull_id)
 //   CREATE w sqlite db
