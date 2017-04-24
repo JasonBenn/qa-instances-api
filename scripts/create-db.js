@@ -4,6 +4,7 @@ const command = `
   CREATE TABLE pulls (
     id INTEGER PRIMARY KEY,
     pr_id INTEGER, -- should match github
+    status TEXT,
     pr_name TEXT, -- should match github
     hostname TEXT, -- (normalized to be valid for AWS)
     db_name TEXT, -- normalized to be valid for RDS, might entail truncation
