@@ -19,7 +19,13 @@ io.on('connection', function(socket){
   rebroadcastCmds(socket, io)
 })
 
+const logErrors = (err, req, res, next) => {
+  console.error(err.stack)
+  next(err)
+}
+
 app.use(bodyParser.json())
+app.use(logErrors)
 
 app.get('/', function(req, res){
   res.sendFile(path.resolve('./index.html'));
@@ -50,24 +56,25 @@ app.get('/pulls', (req, res, next) => {
     // RDS user: :green-check-mark: created
     // ^ after this: Done! For 1 second, then replace with `Review app: [seminar-jb-lo-index](url)`
 
-const defaultErrorHandler = (err, res) => {
-  return res.status(500).send(JSON.stringify({ error: err }))
+const defaultErrorHandler = (err, res, next) => {
+  res.status(500).send(JSON.stringify({ error: err }))
+  next(err)
 }
 
-const sendRowState = (prId, res) => {
+const sendRowState = (prId, res, next) => {
   try {
-    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, req.params.prId, (err, row) => {
-      if (err) return defaultErrorHandler(err, res)
+    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, prId, (err, row) => {
+      if (err) defaultErrorHandler(err, res, next)
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: row }))
     })
   } catch (err) {
-    defaultErrorHandler(err, res)
+    defaultErrorHandler(err, res, next)
   }
 }
 
 app.get('/pulls/:prId', (req, res, next) => {
-  sendRowState(req.params.prId, res)
+  sendRowState(req.params.prId, res, next)
 })
 
 // POST pulls (with :pull_id)
@@ -81,13 +88,13 @@ app.post('/pulls', (req, res, next) => {
       res.status(400).send({ error: 'POST request must include prId' })
     } else {
       db.run(`INSERT OR IGNORE INTO pulls (pr_id) VALUES (?)`, prId, (err, row) => {
-        if (err) return defaultErrorHandler(err, res)
+        if (err) defaultErrorHandler(err, res, next)
         res.status(201)
-        sendRowState(prId, res)
+        sendRowState(prId, res, next)
       })
     }
   } catch (err) {
-    defaultErrorHandler(err, res)
+    defaultErrorHandler(err, res, next)
   }
 })
 
@@ -97,12 +104,12 @@ app.delete('/pulls/:prId', (req, res, next) => {
       res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
       db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.params.prId, (err, row) => {
-        if (err) return defaultErrorHandler(err, res)
+        if (err) defaultErrorHandler(err, res, next)
         res.sendStatus(204)
       })
     }
   } catch (err) {
-    defaultErrorHandler(err, res)
+    defaultErrorHandler(err, res, next)
   }
 })
 
