@@ -8,6 +8,7 @@ import { rebroadcastCmds } from './utils'
 import path from 'path'
 import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record, deleteRoute53Record } from './aws'
 import logger from 'morgan-body';
+import Promise from 'promise'
 
 
 const port = process.env.PORT || 3000
@@ -64,16 +65,23 @@ const defaultErrorHandler = (err, res, next) => {
   next(err)
 }
 
-const sendRowState = (prId, res, next) => {
-  try {
+const getRow = prId => {
+  return new Promise(function(resolve, reject) {
     db.get(`SELECT * FROM pulls WHERE prId = ?`, prId, (err, row) => {
-      if (err) return defaultErrorHandler(err, res, next)
-      res.setHeader('Content-Type', 'application/json')
-      res.send(JSON.stringify({ data: row }))
+      if (err) reject(err)
+      resolve(row)
     })
-  } catch (err) {
+    
+  })
+}
+
+const sendRowState = (prId, res, next) => {
+  getRow(prId).then(row => {
+    res.setHeader('Content-Type', 'application/json')
+    res.send(JSON.stringify({ data: row }))
+  }).catch(err => {
     defaultErrorHandler(err, res, next)
-  }
+  })
 }
 
 app.get('/pulls/:prId', (req, res, next) => {
@@ -86,7 +94,7 @@ const createQaInstance = (prId, instanceDomainName, instanceIp) => {
 
 const instanceDomainName = hostName => hostName + ".minervaproject.com"
 const instanceIp = "54.213.81.155"
-const normalize = joinChar => str => str.toLowerCase().replace(/[\/_]/g, joinChar)
+const normalize = joinChar => str => str.toLowerCase().replace(/[\/_-]/g, joinChar)
 const hypenCase = normalize('-')
 const underscoreCase = normalize('_')
 
@@ -108,9 +116,13 @@ app.post('/pulls', (req, res, next) => {
 
       db.run(dbQuery, queryArgs, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
-        createQaInstance(row.prId, instanceDomainName(row.hostName), row.instanceIp || instanceIp) // TEMPORARY IP
-        res.status(201)
-        sendRowState(prId, res, next)
+        getRow(prId).then(row => {
+          createQaInstance(row.prId, instanceDomainName(row.hostName), row.instanceIp || instanceIp) // TEMPORARY IP
+          res.status(201)
+          sendRowState(prId, res, next)
+        }).catch(err => {
+          defaultErrorHandler(err, res, next)
+        })
       })
     }
   } catch (err) {
