@@ -66,8 +66,8 @@ const defaultErrorHandler = (err, res, next) => {
 
 const sendRowState = (prId, res, next) => {
   try {
-    db.get(`SELECT * FROM pulls WHERE pr_id = ?`, prId, (err, row) => {
-      if (err) defaultErrorHandler(err, res, next)
+    db.get(`SELECT * FROM pulls WHERE prId = ?`, prId, (err, row) => {
+      if (err) return defaultErrorHandler(err, res, next)
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: row }))
     })
@@ -123,7 +123,7 @@ app.delete('/pulls/:prId', (req, res, next) => {
     if (!req.params.prId) {
       res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
-      db.run(`DELETE FROM pulls WHERE (pr_id = ?)`, req.params.prId, (err, row) => {
+      db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
         res.sendStatus(204)
       })
