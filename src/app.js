@@ -6,7 +6,7 @@ import sqlite3 from 'sqlite3'
 import bodyParser from 'body-parser'
 import { rebroadcastCmds } from './utils'
 import path from 'path'
-import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record } from './aws'
+import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record, deleteRoute53Record } from './aws'
 import logger from 'morgan-body';
 
 
@@ -80,6 +80,16 @@ app.get('/pulls/:prId', (req, res, next) => {
   sendRowState(req.params.prId, res, next)
 })
 
+const createQaInstance = (prId, instanceDomainName, instanceIp) => {
+  createRoute53Record(prId, instanceDomainName, instanceIp)
+}
+
+const instanceDomainName = hostName => hostName + ".minervaproject.com"
+const instanceIp = "54.213.81.155"
+const normalize = joinChar => str => str.toLowerCase().replace(/[\/_]/g, joinChar)
+const hypenCase = normalize('-')
+const underscoreCase = normalize('_')
+
 // POST pulls (with :pull_id)
 //   GET or CREATE w sqlite db.
 //   spawn background worker that periodically posts websocket messages
@@ -87,11 +97,18 @@ app.get('/pulls/:prId', (req, res, next) => {
 app.post('/pulls', (req, res, next) => {
   try {
     var prId = req.body.prId
-    if (!prId) {
-      res.status(400).send({ error: 'POST request must include prId' })
+    var sha = req.body.sha
+    var prName = req.body.prName
+
+    if (!prId || !prName || !sha) {
+      res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
     } else {
-      db.run(`INSERT OR IGNORE INTO pulls (pr_id, instanceState) VALUES (?, "starting")`, prId, (err, row) => {
+      var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      var queryArgs = [prId, prName, hypenCase(prName), underscoreCase(prName), "starting", "stopped", sha]
+
+      db.run(dbQuery, queryArgs, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
+        createQaInstance(row.prId, instanceDomainName(row.hostName), row.instanceIp || instanceIp) // TEMPORARY IP
         res.status(201)
         sendRowState(prId, res, next)
       })
