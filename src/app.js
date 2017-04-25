@@ -17,9 +17,25 @@ const app = express()
 var http = require('http').Server(app)
 var io = require('socket.io')(http)
 
-io.on('connection', function(socket){
+let sockets = []
+const publish = (channel, message) => {
+  sockets.forEach(socket => {
+    socket.emit(channel, message)
+  })
+  console.log('sent < ', channel, ':', message, ' > to', sockets.length, 'sockets');
+}
+
+io.on('connection', socket => {
   console.log('connected!');
   rebroadcastCmds(socket, io)
+  sockets.push(socket)
+
+  socket.on('disconnect', function() {
+    console.log('disconnected!');
+    var i = sockets.indexOf(socket);
+    if (i !== -1) sockets = sockets.splice(i, 1);
+  });
+
 })
 
 const logErrors = (err, req, res, next) => {
@@ -89,7 +105,7 @@ app.get('/pulls/:prId', (req, res, next) => {
 })
 
 const createQaInstance = (prId, instanceDomainName, instanceIp) => {
-  createRoute53Record(prId, instanceDomainName, instanceIp)
+  createRoute53Record(publish, prId, instanceDomainName, instanceIp)
 }
 
 const instanceDomainName = hostName => hostName + ".minervaproject.com"

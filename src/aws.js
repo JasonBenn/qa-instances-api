@@ -1,8 +1,6 @@
 import { execFile } from 'child_process'
 import aws from 'aws-sdk'
-import io from 'socket.io'
 
-const socket = io();
 const dbName = "review_features_lo_detail_page"
 
 export const createDB = (dbName) => {
@@ -217,30 +215,30 @@ const changeRoute53Record = (prId, instanceDomainName, instanceIp, action, callb
   }, callback)
 }
 
-export const createRoute53Record = (prId, instanceDomainName, instanceIp) => {
-  socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "creating...", color: "yellow" } }));
+export const createRoute53Record = (publish, prId, instanceDomainName, instanceIp) => {
+  publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: "creating...", color: "yellow" } }));
 
   changeRoute53Record(prId, instanceDomainName, instanceIp, "UPSERT", function(err, data) {
     if (err) {
-      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
+      publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
       console.log(err, err.stack)
     } else {
-      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "created", color: "green" } }));
+      publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: "created", color: "green" } }));
     }
   })
 }
 
 // createRoute53Record(2300, instanceDomainName, instanceIp)
 
-export const deleteRoute53Record = (prId, instanceDomainName, instanceIp) => {
-  socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleting...", color: "yellow" } }));
+export const deleteRoute53Record = (publish, prId, instanceDomainName, instanceIp) => {
+  publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleting...", color: "yellow" } }));
 
   changeRoute53Record(prId, instanceDomainName, instanceIp, "DELETE", function(err, data) {
     if (err) {
-      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
+      publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
       console.log(err, err.stack)
     } else {
-      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleted", color: "green" } }));
+      publish('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleted", color: "green" } }));
     }
   })
 }
