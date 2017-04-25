@@ -97,6 +97,7 @@ const instanceIp = "54.213.81.155"
 const normalize = joinChar => str => str.toLowerCase().replace(/[\/_-]/g, joinChar)
 const hypenCase = normalize('-')
 const underscoreCase = normalize('_')
+const getHostName = prName => "qa-" + hypenCase(prName)
 
 // POST pulls (with :pull_id)
 //   GET or CREATE w sqlite db.
@@ -112,7 +113,7 @@ app.post('/pulls', (req, res, next) => {
       res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
     } else {
       var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      var queryArgs = [prId, prName, hypenCase(prName), underscoreCase(prName), "starting", "stopped", sha]
+      var queryArgs = [prId, prName, getHostName(prName), underscoreCase(prName), "starting", "stopped", sha]
 
       db.run(dbQuery, queryArgs, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
