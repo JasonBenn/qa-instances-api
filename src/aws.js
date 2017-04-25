@@ -1,6 +1,8 @@
 import { execFile } from 'child_process'
 import aws from 'aws-sdk'
+import io from 'socket.io'
 
+const socket = io();
 const dbName = "review_features_lo_detail_page"
 
 export const createDB = (dbName) => {
@@ -54,7 +56,7 @@ export const createInstance = () => {
     StackId: STACK_VPCSTAGING,
     LayerIds: [LAYER_SEMINAR_REVIEW],
     InstanceType: "m3.large",
-    Hostname: "seminar-review-features-lo-detail-page" // must not contain underscores
+    Hostname: "qa-features-lo-detail-page" // must not contain underscores
   }, (err, data) => {
     if (err) console.log(err, err.stack)
     else {
@@ -197,11 +199,11 @@ export const startInstanceServices = (instanceId, domainName, dbName) => {
 const MP_HOSTED_ZONE_ID = "Z2ETWILA1953Q3"
 const instanceIp = "54.213.81.155"
 
-export const createRoute53Record = (instanceDomainName, instanceIp) => {
-  route53.changeResourceRecordSets({
+const changeRoute53Record = (prId, instanceDomainName, instanceIp, action, callback) => {
+  return route53.changeResourceRecordSets({
     ChangeBatch: {
       Changes: [{
-        Action: "CREATE",
+        Action: action,
         ResourceRecordSet: {
           Name: instanceDomainName + ".",
           ResourceRecords: [{ Value: instanceIp }],
@@ -212,10 +214,33 @@ export const createRoute53Record = (instanceDomainName, instanceIp) => {
       Comment: "QA instance"
     }, 
     HostedZoneId: MP_HOSTED_ZONE_ID
-  }, defaultAwsCallback)
+  }, callback)
 }
 
-// createRoute53Record(instanceDomainName, instanceIp)
+export const createRoute53Record = (prId, instanceDomainName, instanceIp) => {
+  socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "creating...", color: "yellow" } }));
 
-// TODO: const deleteRoute53Record
+  changeRoute53Record(prId, instanceDomainName, instanceIp, "UPSERT", function(err, data) {
+    if (err) {
+      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
+      console.log(err, err.stack)
+    } else {
+      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "created", color: "green" } }));
+    }
+  })
+}
 
+// createRoute53Record(2300, instanceDomainName, instanceIp)
+
+export const deleteRoute53Record = (prId, instanceDomainName, instanceIp) => {
+  socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleting...", color: "yellow" } }));
+
+  changeRoute53Record(prId, instanceDomainName, instanceIp, "DELETE", function(err, data) {
+    if (err) {
+      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: err.stack, color: "red" } }));
+      console.log(err, err.stack)
+    } else {
+      socket.emit('picasso/pull/' + prId, JSON.stringify({ route53: { text: "deleted", color: "green" } }));
+    }
+  })
+}
