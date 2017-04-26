@@ -9,6 +9,7 @@ const command = `
     dbName TEXT, -- normalized to be valid for RDS, might entail truncation
     instanceState TEXT, -- starting|online|stopping (when no row is found, instance is assumed offline)
     deployState TEXT, -- stopped|setting-up|deploying|created
+    route53State TEXT,
     url TEXT, -- url
     sha TEXT, -- of most recent deploy
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
