@@ -11,3 +11,20 @@ export const rebroadcastCmds = (socket, io) => {
     }
   })
 }
+
+export const defaultAwsCallback = (err, data) => {
+  if (err) console.log(err, err.stack)
+  else console.log(data)
+}
+
+export const logErrors = (err, req, res, next) => {
+  console.error(err.stack)
+  next(err)
+}
+
+const normalize = joinChar => str => str.toLowerCase().replace(/[\/_-]/g, joinChar)
+export const hypenCase = normalize('-')
+export const underscoreCase = normalize('_')
+
+export const getHostName = prName => "qa-" + hypenCase(prName)
+export const getDomainName = hostName => hostName + ".minervaproject.com"
