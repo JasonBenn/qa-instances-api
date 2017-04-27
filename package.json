@@ -30,6 +30,7 @@
     "strip-json-comments": "^2.0.1"
   },
   "devDependencies": {
+    "aws-sdk-mock": "^1.7.0",
     "babel-cli": "^6.24.1",
     "babel-core": "^6.24.1",
     "babel-preset-node6": "^11.0.0",

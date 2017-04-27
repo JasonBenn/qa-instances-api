@@ -13,6 +13,7 @@ const domainName = getDomainName(hostName)
 const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
 // all states: booting|connection_lost|online|pending|rebooting|requested|running_setup|setup_failed|shutting_down|start_failed|stop_failed|stopped|stopping|terminated|terminating
 const POLL_STATE_INTERVAL = 5000
+const MOCK_AWS = true
 
 
 export default class AWS {
@@ -22,6 +23,20 @@ export default class AWS {
     this.route53 = new aws.Route53()
     this.pubsub = pubsub
     this.config = config
+
+    if (MOCK_AWS) this.mockAws()
+  }
+
+  mockAws() {
+    const aws = require('aws-sdk-mock')
+    const defaultCallback = (params, cb) => cb(null, 'success')
+    aws.mock('OpsWorks', 'createInstance')
+    aws.mock('OpsWorks', 'deleteInstance')
+    aws.mock('OpsWorks', 'startInstance')
+    aws.mock('OpsWorks', 'describeInstances')
+    aws.mock('OpsWorks', 'stopInstance')
+    aws.mock('OpsWorks', 'createDeployment')
+    aws.mock('Route53', 'changeResourceRecordSets')
   }
 
   createDB(dbName) {
