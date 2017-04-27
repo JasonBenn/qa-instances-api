@@ -24,9 +24,9 @@ export default class PubSub {
     })
   }
 
-  publish(channel, message) {
+  publish(prId, message) {
     this.sockets.forEach(socket => {
-      socket.emit(channel, message)
+      socket.emit(this.config.repoName + '/pulls/' + prId, message)
     })
     console.log('sent < ', channel, ':', message, ' > to', this.sockets.length, 'sockets');
   }
@@ -34,7 +34,7 @@ export default class PubSub {
   saveThenPublish(prId, data) {
     console.log('saving and publishing', prId, data);
     this.db.update(prId, data).then(() => {
-      this.publish(this.config.repoName + '/pulls/' + prId, JSON.stringify(data))
+      this.publish(prId, JSON.stringify(data))
     })
   }
 
