@@ -17,7 +17,7 @@ export const rebroadcastCmds = (socket, io) => {
   })
 }
 
-export const defaultAwsCallback = (err, data) => {
+export const defaultAwsCb = (err, data) => {
   if (err) console.log(err, err.stack)
   else console.log(data)
 }

@@ -1,7 +1,7 @@
 import { execFile } from 'child_process'
 import path from 'path'
 import aws from 'aws-sdk'
-import { defaultAwsCallback, getDomainName } from './utils'
+import { defaultAwsCb, getDomainName } from './utils'
 
 // These will all eventually come from DB.
 const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34'
@@ -29,14 +29,14 @@ export default class AWS {
 
   mockAws() {
     const aws = require('aws-sdk-mock')
-    const defaultCallback = (params, cb) => cb(null, 'success')
-    aws.mock('OpsWorks', 'createInstance')
-    aws.mock('OpsWorks', 'deleteInstance')
-    aws.mock('OpsWorks', 'startInstance')
-    aws.mock('OpsWorks', 'describeInstances')
-    aws.mock('OpsWorks', 'stopInstance')
-    aws.mock('OpsWorks', 'createDeployment')
-    aws.mock('Route53', 'changeResourceRecordSets')
+    const defaultCb = (params, cb) => cb(null, 'success')
+    aws.mock('OpsWorks', 'createInstance', defaultCb)
+    aws.mock('OpsWorks', 'deleteInstance', defaultCb)
+    aws.mock('OpsWorks', 'startInstance', defaultCb)
+    aws.mock('OpsWorks', 'describeInstances', defaultCb)
+    aws.mock('OpsWorks', 'stopInstance', defaultCb)
+    aws.mock('OpsWorks', 'createDeployment', defaultCb)
+    aws.mock('Route53', 'changeResourceRecordSets', defaultCb)
   }
 
   createDB(dbName) {
@@ -75,14 +75,14 @@ export default class AWS {
   deleteInstance(instanceId) {
     this.opsworks.deleteInstance({
       InstanceId: instanceId
-    }, defaultAwsCallback)
+    }, defaultAwsCb)
   }
 
   startInstance(instanceId) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#startInstance-property
     this.opsworks.startInstance({
       InstanceId: instanceId
-    }, defaultAwsCallback)
+    }, defaultAwsCb)
   }
 
   pollInstanceState(instanceId, ignoreFirstState = "", callCount = 0, currentStatus = "") {
@@ -120,7 +120,7 @@ export default class AWS {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#stopInstance-property
     this.opsworks.stopInstance({
       InstanceId: instanceId
-    }, defaultAwsCallback)
+    }, defaultAwsCb)
   }
 
   deployInstance(instanceId, domainName, dbName) {
@@ -149,7 +149,7 @@ export default class AWS {
 
         }
       })
-    }, defaultAwsCallback)
+    }, defaultAwsCb)
   }
 
   startInstanceServices(instanceId, domainName, dbName) {
@@ -178,10 +178,10 @@ export default class AWS {
           }
         }
       })
-    }, defaultAwsCallback)
+    }, defaultAwsCb)
   }
 
-  changeRoute53Record(prId, domainName, instanceIp, action, callback) {
+  changeRoute53Record(prId, domainName, instanceIp, action, cb) {
     this.route53.changeResourceRecordSets({
       ChangeBatch: {
         Changes: [{
@@ -196,7 +196,7 @@ export default class AWS {
         Comment: "QA instance"
       },
       HostedZoneId: this.config.route53HostedZoneID
-    }, callback)
+    }, cb)
   }
 
   createRoute53Record(prId, domainName, instanceIp) {
@@ -228,7 +228,7 @@ export default class AWS {
 }
 
 // createDB(dbName)
-// opsworks.describeStacks({}, defaultAwsCallback)
+// opsworks.describeStacks({}, defaultAwsCb)
 // createInstance(prId, prHostname)
 // deleteInstance(instanceId)
 // startInstance(instanceId, "stopped")
