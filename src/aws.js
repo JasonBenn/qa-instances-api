@@ -1,6 +1,7 @@
 import { execFile } from 'child_process'
 import path from 'path'
 import aws from 'aws-sdk'
+import Promise from 'promise'
 import { getDomainName } from './utils'
 
 // These will all eventually come from DB.
@@ -10,9 +11,6 @@ const hostName = "qa-features-lo-detail-page"
 const instanceIp = "54.213.81.155"
 const domainName = getDomainName(hostName)
 
-const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
-// all states: booting|connection_lost|online|pending|rebooting|requested|running_setup|setup_failed|shutting_down|start_failed|stop_failed|stopped|stopping|terminated|terminating
-const POLL_STATE_INTERVAL = 5000
 const MOCK_AWS = true
 
 
@@ -41,36 +39,30 @@ export default class AWS {
 
   createDB(dbName) {
     // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
-    // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
-    const restoreBackup = execFile(process.cwd() + "/scripts/ten-secs-of-stderr.sh", null, {
-      env: {
-        dbName: dbName
-      }
-    })
+    return Promise((resolve, reject) => {
+      // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
+      const restoreBackup = execFile(process.cwd() + "/scripts/ten-secs-of-stderr.sh", null, {
+        env: {
+          dbName: dbName
+        }
+      })
 
-    restoreBackup.stderr.on('data', data => console.log(data.toString()))
-
-    restoreBackup.on('close', code => {
-      if (code === 0) console.log("Created!")
+      promise.resolve(restoreBackup.stderr)
     })
   }
 
-  createInstance(prId, prHostname) {
+  deleteDB(dbName) {
+    // TODO
+  }
+
+  createInstance(prId, hostName) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
     return this.opsworks.createInstance({
       StackId: this.config.stackId,
       LayerIds: [this.config.layerId],
       InstanceType: "m3.large",
-      Hostname: prHostname
+      Hostname: hostName
     }).promise()
-    // (err, data) => {
-    //   if (err) console.log(err, err.stack)
-    //   else {
-    //     const instanceId = data.InstanceId
-    //     console.log(instanceId)
-    //     // this.db.update(prId, { instanceId: instanceId })
-    //   }
-    // }
   }
 
   deleteInstance(instanceId) {
@@ -86,36 +78,7 @@ export default class AWS {
     }).promise()
   }
 
-  pollInstanceState(instanceId, ignoreFirstState = "", callCount = 0, currentStatus = "") {
-
-    // TODO
-
-    // callCount += 1
-    // , (err, data) => {
-    //   if (err) console.log(err, err.stack)
-    //   else {
-    //     const status = data.Instances[0].Status
-
-    //     if (status !== currentStatus) {
-    //       currentStatus = status
-    //       console.log(currentStatus)
-    //       // send WSS with new state
-    //     }
-
-    //     if (ignoreFirstState === status) {
-    //       // If the state is something we want to ignore, like "online" when we're stopping, then proceed even though it's a terminal state.
-    //       setTimeout(pollInstanceState.bind(null, instanceId, ignoreFirstState, callCount, currentStatus), POLL_STATE_INTERVAL)
-    //     } else {
-    //       if (TERMINAL_STATES.includes(currentStatus) || callCount === 40) {
-    //         console.log("finished!");
-    //       } else {
-    //         setTimeout(pollInstanceState.bind(null, instanceId, null, callCount, currentStatus), POLL_STATE_INTERVAL)
-    //       }
-    //     }
-
-    //   }
-    // })
-
+  describeInstances(instanceId) {
     return this.opsworks.describeInstances({
       InstanceIds: [instanceId]
     }).promise()
@@ -231,17 +194,3 @@ export default class AWS {
   }
 
 }
-
-// createDB(dbName)
-// opsworks.describeStacks({}).promise()
-// createInstance(prId, prHostname)
-// deleteInstance(instanceId)
-// startInstance(instanceId, "stopped")
-// pollInstanceState(instanceId)
-// stopInstance(instanceId)
-// pollInstanceState(instanceId, "online")
-// deployInstance(instanceId, domainName, dbName)
-// pollInstanceState(instanceId, "online")
-// deployInstance(instanceId, domainName, dbName)
-// pollInstanceState(instanceId, "online")
-// createRoute53Record(2300, domainName, instanceIp)

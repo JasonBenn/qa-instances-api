@@ -15,9 +15,9 @@ const app = express()
 const http = require('http').Server(app)
 
 readConfig('picasso').then(config => {
-  app.use(bodyParser.json()) // parse incoming application/json
-  app.use(logErrors) // log stack traces
-  logger(app) // log request bodies
+  app.use(bodyParser.json())
+  app.use(logErrors)
+  logger(app)
 
   const db = new DB()
   const pubsub = new PubSub(http, db, config)
