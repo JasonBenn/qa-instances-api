@@ -68,7 +68,7 @@ export const routes = (app, db, aws) => {
     if (!req.params.prId) {
       res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
-      db.delete(prId).then(() => {
+      db.delete(req.params.prId).then(() => {
         res.sendStatus(204)
       }).catch(err => {
         defaultErrorHandler(err, res, next)

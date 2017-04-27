@@ -20,13 +20,13 @@ export default class DB {
     })
   }
 
-  get(id) {
-    return new Promise(function(resolve, reject) {
+  get(prId) {
+    return new Promise((resolve, reject) => {
       this.db.get(`SELECT * FROM pulls WHERE prId = ?`, prId, promiseCb(resolve, reject))
     })
   }
 
-  update(id, data) {
+  update(prId, data) {
     return new Promise((resolve, reject) => {
       const values = _.map(data, (value, key) => [key, value].join(' = ')).join(', ')
       // Why isn't this ever getting logged locally?
@@ -35,7 +35,7 @@ export default class DB {
     })
   }
 
-  delete(id) {
+  delete(prId) {
     return new Promise((resolve, reject) => {
       this.db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, promiseCb(resolve, reject))
     })
