@@ -3,7 +3,7 @@ import { createDB, createInstance, deleteInstance, startInstance, stopInstance, 
 import { getHostName, getDomainName, underscoreCase } from './utils'
 
 
-export const routes = (app, db, aws) => {  
+export const routes = (app, db, aws, qaInstances) => {  
   const defaultErrorHandler = (err, res, next) => {
     res.status(500).send(JSON.stringify({ error: err }))
     next(err)
@@ -32,31 +32,16 @@ export const routes = (app, db, aws) => {
   })
 
   app.post('/pulls', (req, res, next) => {
-    var prId = req.body.prId
-    var sha = req.body.sha
-    var prName = req.body.prName
+    const { prId, sha, prName } = req.body
+    const requiredArgs = [prId, sha, prName]
 
-    if (!prId || !prName || !sha) {
-      res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
+    if (!requiredArgs.every(x => x)) {
+      res.status(400).send({ error: 'POST request must include ' + requiredArgs.join(', ') })
     } else {
-      const hostName = getHostName(prName)
-      db.create({
-        prId: prId,
-        sha: sha,
-        prName: prName,
-        hostName: hostName,
-        instanceState: "starting",
-        deployState: "stopped"
-      }).then(() => {
-        const dbName = underscoreCase(prName)
-        aws.createDB().then(() => db.update(prId, { dbName }))
-        const instanceIp = "asdf"
-        aws.createRoute53Record(prId, getDomainName(hostName), instanceIp)
-      }).then(() => {
+      qaInstances.create(prId, sha, prName).then(() => {
         res.status(201)
         sendRowState(prId, res, next)
       }).catch(err => defaultErrorHandler(err, res, next))
-      
     }
   })
 
@@ -65,10 +50,12 @@ export const routes = (app, db, aws) => {
   })
 
   app.delete('/pulls/:prId', (req, res, next) => {
-    if (!req.params.prId) {
-      res.status(400).send({ error: 'DELETE request must include prId param' })
+    const { prId } = req.params
+
+    if (!prId) {
+      res.status(400).send({ error: 'DELETE request must include prId' })
     } else {
-      db.delete(req.params.prId).then(() => {
+      qaInstances.delete(prId).then(() => {
         res.sendStatus(204)
       }).catch(err => {
         defaultErrorHandler(err, res, next)

@@ -21,8 +21,9 @@ readConfig('picasso').then(config => {
 
   const db = new DB()
   const pubsub = new PubSub(http, db, config)
-  const aws = new AWS(config, pubsub)
-  routes(app, db, aws)
+  const aws = new AWS(config)
+  const qaInstances = new QaInstances(db, pubsub, aws)
+  routes(app, db, aws, qaInstances)
 
   Promise.resolve()
     .then(() => http.listen(port))
