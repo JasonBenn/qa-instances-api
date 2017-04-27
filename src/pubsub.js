@@ -2,9 +2,10 @@ import { rebroadcastCmds } from './utils'
 
 
 export default class PubSub {
-  constructor(http, db) {
+  constructor(http, db, config) {
     this.sockets = []
     this.db = db
+    this.config = config
     this.io = require('socket.io')(http)
     this.io.on('connection', this.onConnection)
   }
@@ -41,7 +42,7 @@ export default class PubSub {
       this.db.run('UPDATE pulls SET ' + values + ' WHERE prId = ?', prId, (err, row) => {
         console.log('saved', err, row)
         if (err) reject(err)
-        publish('picasso/pulls/' + prId, JSON.stringify(data))
+        publish(this.config.repoName + '/pulls/' + prId, JSON.stringify(data))
         resolve(row)
       })   
     })

@@ -1,3 +1,8 @@
+import path from 'path'
+import fs from 'fs'
+import stripJsonComments from 'strip-json-comments'
+
+
 export const rebroadcastCmds = (socket, io) => {
   socket.on('cmd', function(cmd) {
     var matched = /(.*)::(.*)/.exec(cmd);
@@ -28,3 +33,18 @@ export const underscoreCase = normalize('_')
 
 export const getHostName = prName => "qa-" + hypenCase(prName)
 export const getDomainName = hostName => hostName + ".minervaproject.com"
+
+const arrayShallowEquals = (a, b) => a.sort().toString() === b.sort().toString()
+const REQUIRED_CONFIGS = ["repoName", "region", "stackId", "layerId", "appId", "route53HostedZoneID"]
+
+export const readConfig = filename => {
+  return new Promise(function(resolve, reject) {
+    const filepath = path.resolve(`./config/${filename}.json`)
+    fs.readFile(filepath, 'utf8', (err, data) => {
+      if (err) reject(err)
+      const config = JSON.parse(stripJsonComments(data))
+      const validConfig = arrayShallowEquals(REQUIRED_CONFIGS, Object.keys(config))
+      return (validConfig) ? resolve(config) : reject(config)
+    })
+  })
+}

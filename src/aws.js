@@ -1,32 +1,29 @@
 import { execFile } from 'child_process'
+import path from 'path'
 import aws from 'aws-sdk'
 import { defaultAwsCallback, getDomainName } from './utils'
 
-const dbName = "review_features_lo_detail_page"
-
+// These will all eventually come from DB.
 // const instanceId = "i-0ad248b7dc45d8846"  // seminar-review1?
 const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34' // which of these is the opsworks ID, which is the ec2 ID?
-
-const STACK_VPCSTAGING = "fd6cc57c-02fb-433c-bf04-00c1dfc7acdc"
-const LAYER_SEMINAR_REVIEW = "3b6657ea-ee38-4586-8f9a-a404366e771b"
-const APP_SEMINAR_REVIEW = "24f985e0-1e70-4059-b0f0-aa8d43483d60"
+const dbName = "review_features_lo_detail_page"
 const hostName = "qa-features-lo-detail-page"
+const instanceIp = "54.213.81.155"
 const domainName = getDomainName(hostName)
 
 const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
 // all states: booting|connection_lost|online|pending|rebooting|requested|running_setup|setup_failed|shutting_down|start_failed|stop_failed|stopped|stopping|terminated|terminating
 const POLL_STATE_INTERVAL = 5000
-const MP_HOSTED_ZONE_ID = "Z2ETWILA1953Q3"
-const instanceIp = "54.213.81.155"
 
 
 export default class AWS {
-  constructor(pubsub) {
-    aws.config.update({ region: 'us-east-1' })
+  constructor(config, pubsub) {
+    aws.config.loadFromPath(path.resolve('./config/aws.json'))
     this.ec2 = new aws.EC2()
     this.opsworks = new aws.OpsWorks()
     this.route53 = new aws.Route53()
     this.pubsub = pubsub
+    this.config = config
   }
 
   createDB(dbName) {
@@ -61,15 +58,16 @@ export default class AWS {
   createInstance(prId, prHostname) {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
     this.opsworks.createInstance({
-      StackId: STACK_VPCSTAGING,
-      LayerIds: [LAYER_SEMINAR_REVIEW],
+      StackId: this.config.stackId,
+      LayerIds: [this.config.layerId],
       InstanceType: "m3.large",
-      Hostname: prHostname // must not contain underscores
+      Hostname: prHostname
     }, (err, data) => {
       if (err) console.log(err, err.stack)
       else {
         const instanceId = data.InstanceId
         console.log(instanceId)
+        // this.db.update(prId, { instanceId: instanceId })
       }
     })
   }
@@ -129,8 +127,8 @@ export default class AWS {
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createDeployment-property
     // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
     this.opsworks.createDeployment({
-      StackId: STACK_VPCSTAGING,
-      AppId: APP_SEMINAR_REVIEW,
+      StackId: this.config.stackId,
+      AppId: this.config.appId,
       InstanceIds: [instanceId],
       Command: {
         Name: "execute_recipes",
@@ -157,8 +155,8 @@ export default class AWS {
   startInstanceServices(instanceId, domainName, dbName) {
     // This is part 2 of the deploy step. These recipes require that a database is ready.
     this.opsworks.createDeployment({
-      StackId: STACK_VPCSTAGING,
-      AppId: APP_SEMINAR_REVIEW,
+      StackId: this.config.stackId,
+      AppId: this.config.appId,
       InstanceIds: [instanceId],
       Command: {
         Name: "execute_recipes",
@@ -197,7 +195,7 @@ export default class AWS {
         }],
         Comment: "QA instance"
       }, 
-      HostedZoneId: MP_HOSTED_ZONE_ID
+      HostedZoneId: this.config.route53HostedZoneID
     }, callback)
   }
 
