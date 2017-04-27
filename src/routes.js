@@ -3,7 +3,7 @@ import { createDB, createInstance, deleteInstance, startInstance, stopInstance, 
 import { getHostName, getDomainName, underscoreCase } from './utils'
 
 
-export const routes = (app, db, aws, qaInstances) => {  
+export const routes = (app, db, aws, pubsub, qaInstances) => {  
   const defaultErrorHandler = (err, res, next) => {
     res.status(500).send(JSON.stringify({ error: err }))
     next(err)
@@ -55,10 +55,9 @@ export const routes = (app, db, aws, qaInstances) => {
     if (!prId) {
       res.status(400).send({ error: 'DELETE request must include prId' })
     } else {
-      qaInstances.delete(prId).then(() => {
+      qaInstances.delete(prId)
+      pubsub.saveThenPublish(prId, { instanceState: 'stopping' }).then(() => {
         res.sendStatus(204)
-      }).catch(err => {
-        defaultErrorHandler(err, res, next)
       })
     }
   })

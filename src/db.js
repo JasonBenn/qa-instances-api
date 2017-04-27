@@ -1,5 +1,6 @@
 import SQLite3 from 'sqlite3'
 import { promiseCb } from './utils'
+import _ from 'underscore'
 const LOG_QUERIES = true
 
 

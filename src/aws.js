@@ -19,7 +19,6 @@ export default class AWS {
     aws.config.loadFromPath(path.resolve('./config/aws.json'))
     this.opsworks = new aws.OpsWorks()
     this.route53 = new aws.Route53()
-    this.pubsub = pubsub
     this.config = config
 
     if (MOCK_AWS) this.mockAws()
@@ -39,7 +38,7 @@ export default class AWS {
 
   createDB(dbName) {
     // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
-    return Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
       // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
       const restoreBackup = execFile(process.cwd() + "/scripts/ten-secs-of-stderr.sh", null, {
         env: {

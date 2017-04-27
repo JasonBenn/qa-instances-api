@@ -51,11 +51,13 @@ export default class QaInstances {
   }
 
   delete(prId) {
-    const deleteDBPromise = this.aws.deleteDB()
-    const stopInstancePromise = this.aws.stopInstance(instanceId)
-    Promise.all([deleteDBPromise, stopInstancePromise]).then(() => {
-      this.aws.deleteInstance(instanceId).then(() => {
-        this.db.delete(prId)
+    this.db.get(prId).then(({ instanceId }) => {
+      const deleteDBPromise = this.aws.deleteDB()
+      const stopInstancePromise = this.aws.stopInstance(instanceId)
+      Promise.all([deleteDBPromise, stopInstancePromise]).then(() => {
+        this.aws.deleteInstance(instanceId).then(() => {
+          this.db.delete(prId)
+        })
       })
     })
   }

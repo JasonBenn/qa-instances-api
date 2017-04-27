@@ -7,6 +7,7 @@ import { routes } from './routes'
 import PubSub from './pubsub'
 import AWS from './aws'
 import DB from './db'
+import QaInstances from './qa-instances'
 
 
 const port = process.env.PORT || 3000
@@ -23,7 +24,7 @@ readConfig('picasso').then(config => {
   const pubsub = new PubSub(http, db, config)
   const aws = new AWS(config)
   const qaInstances = new QaInstances(db, pubsub, aws)
-  routes(app, db, aws, qaInstances)
+  routes(app, db, aws, pubsub, qaInstances)
 
   Promise.resolve()
     .then(() => http.listen(port))

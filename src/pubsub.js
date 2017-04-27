@@ -1,4 +1,5 @@
 import { rebroadcastCmds } from './utils'
+import Promise from 'promise'
 
 
 export default class PubSub {
@@ -33,8 +34,11 @@ export default class PubSub {
 
   saveThenPublish(prId, data) {
     console.log('saving and publishing', prId, data);
-    this.db.update(prId, data).then(() => {
-      this.publish(prId, JSON.stringify(data))
+    return new Promise((resolve, reject) => {
+      this.db.update(prId, data).then(() => {
+        this.publish(prId, JSON.stringify(data))
+        resolve()
+      })
     })
   }
 
