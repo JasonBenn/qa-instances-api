@@ -4,8 +4,7 @@ import aws from 'aws-sdk'
 import { defaultAwsCallback, getDomainName } from './utils'
 
 // These will all eventually come from DB.
-// const instanceId = "i-0ad248b7dc45d8846"  // seminar-review1?
-const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34' // which of these is the opsworks ID, which is the ec2 ID?
+const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34'
 const dbName = "review_features_lo_detail_page"
 const hostName = "qa-features-lo-detail-page"
 const instanceIp = "54.213.81.155"
@@ -19,7 +18,6 @@ const POLL_STATE_INTERVAL = 5000
 export default class AWS {
   constructor(config, pubsub) {
     aws.config.loadFromPath(path.resolve('./config/aws.json'))
-    this.ec2 = new aws.EC2()
     this.opsworks = new aws.OpsWorks()
     this.route53 = new aws.Route53()
     this.pubsub = pubsub
@@ -39,19 +37,6 @@ export default class AWS {
 
     restoreBackup.on('close', code => {
       if (code === 0) console.log("Created!")
-    })
-  }
-
-  waitForInstanceExists(instanceId) {
-    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/EC2.html#instanceExists-waiter
-    // Wait for instance to be ready, get IP address.
-    this.ec2.waitFor('instanceExists', {InstanceIds: [instanceId]}, function(err, data) {
-      if (err) console.log(err, err.stack);
-      else {
-        console.log(data)
-        const ipAddress = data.Reservations[0].Instances[0].PublicIpAddress
-        // eventually, this should update DB and put IP address in.
-      }
     })
   }
 
@@ -194,7 +179,7 @@ export default class AWS {
           }
         }],
         Comment: "QA instance"
-      }, 
+      },
       HostedZoneId: this.config.route53HostedZoneID
     }, callback)
   }
