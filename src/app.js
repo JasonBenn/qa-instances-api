@@ -16,13 +16,13 @@ const http = require('http').Server(app)
 const db = new sqlite3.Database("db.sqlite")
 
 readConfig('picasso').then(config => {
-  const pubsub = new PubSub(http, db, config)
-  const aws = new AWS(config, pubsub)
-  routes(app, db, aws)
-
   app.use(bodyParser.json()) // parse incoming application/json
   app.use(logErrors) // log stack traces
   logger(app) // log request bodies
+
+  const pubsub = new PubSub(http, db, config)
+  const aws = new AWS(config, pubsub)
+  routes(app, db, aws)
 
   Promise.resolve()
     .then(() => http.listen(port))
