@@ -1,6 +1,6 @@
 import path from 'path'
 import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record, deleteRoute53Record } from './aws'
-import { getHostName, underscoreCase } from './utils'
+import { getHostName, getDomainName, underscoreCase } from './utils'
 
 
 export const routes = (app, db, aws) => {  
@@ -16,10 +16,6 @@ export const routes = (app, db, aws) => {
     }).catch(err => {
       defaultErrorHandler(err, res, next)
     })
-  }
-
-  const createQaInstance = (prId, hostName, instanceIp) => {
-    aws.createRoute53Record(prId, getDomainName(hostName), instanceIp)
   }
 
   app.get('/', function(req, res){
@@ -54,18 +50,13 @@ export const routes = (app, db, aws) => {
       }).then(() => {
         const dbName = underscoreCase(prName)
         aws.createDB().then(() => db.update(prId, { dbName }))
-      })
-
-      db.run(dbQuery, queryArgs, (err, row) => {
-        if (err) defaultErrorHandler(err, res, next)
-        db.get(prId).then(row => {
-          createQaInstance(row.prId, row.hostName, row.instanceIp || instanceIp) // TEMPORARY IP
-          res.status(201)
-          sendRowState(prId, res, next)
-        }).catch(err => {
-          defaultErrorHandler(err, res, next)
-        })
-      })
+        const instanceIp = "asdf"
+        aws.createRoute53Record(prId, getDomainName(hostName), instanceIp)
+      }).then(() => {
+        res.status(201)
+        sendRowState(prId, res, next)
+      }).catch(err => defaultErrorHandler(err, res, next))
+      
     }
   })
 
