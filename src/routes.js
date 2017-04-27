@@ -59,7 +59,7 @@ export const routes = (app, db, aws) => {
         var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
         var queryArgs = [prId, prName, getHostName(prName), underscoreCase(prName), "starting", "stopped", sha]
 
-        createDB('')
+      aws.createDB('')
 
         db.run(dbQuery, queryArgs, (err, row) => {
           if (err) defaultErrorHandler(err, res, next)
