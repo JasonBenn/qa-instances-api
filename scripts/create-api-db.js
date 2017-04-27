@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3'
 
 const command = `
+  DROP TABLE IF EXISTS pulls;
   CREATE TABLE pulls (
     id INTEGER PRIMARY KEY,
     prId INTEGER, -- should match github
