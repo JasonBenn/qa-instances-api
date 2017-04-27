@@ -1,5 +1,6 @@
 import path from 'path'
 import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record, deleteRoute53Record } from './aws'
+import { getHostName, underscoreCase } from './utils'
 
 
 export const routes = (app, db, aws) => {  
@@ -26,8 +27,8 @@ export const routes = (app, db, aws) => {
     })
   }
 
-  const createQaInstance = (prId, instanceDomainName, instanceIp) => {
-    this.aws.createRoute53Record(saveThenPublish, prId, instanceDomainName, instanceIp)
+  const createQaInstance = (prId, hostName, instanceIp) => {
+    aws.createRoute53Record(prId, getDomainName(hostName), instanceIp)
   }
 
   app.get('/', function(req, res){
@@ -35,45 +36,37 @@ export const routes = (app, db, aws) => {
   })
 
   app.get('/pulls', (req, res, next) => {
-    try {
-      io.emit('pulls', "fetching all pulls...");
-      db.all(`SELECT * FROM pulls`, undefined, (err, rows) => {
-        if (err) return res.status(500).send({ error: err })
-        res.setHeader('Content-Type', 'application/json')
-        res.send(JSON.stringify({ data: rows }))
-      })
-    } catch (err) {
-      next(err)
-    }
+    io.emit('pulls', "fetching all pulls...");
+    db.all(`SELECT * FROM pulls`, undefined, (err, rows) => {
+      if (err) return res.status(500).send({ error: err })
+      res.setHeader('Content-Type', 'application/json')
+      res.send(JSON.stringify({ data: rows }))
+    })
   })
 
   app.post('/pulls', (req, res, next) => {
-    try {
-      var prId = req.body.prId
-      var sha = req.body.sha
-      var prName = req.body.prName
+    var prId = req.body.prId
+    var sha = req.body.sha
+    var prName = req.body.prName
 
-      if (!prId || !prName || !sha) {
-        res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
-      } else {
-        var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
-        var queryArgs = [prId, prName, getHostName(prName), underscoreCase(prName), "starting", "stopped", sha]
+    if (!prId || !prName || !sha) {
+      res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
+    } else {
+      var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      var queryArgs = [prId, prName, getHostName(prName), underscoreCase(prName), "starting", "stopped", sha]
 
       aws.createDB('')
 
-        db.run(dbQuery, queryArgs, (err, row) => {
-          if (err) defaultErrorHandler(err, res, next)
-          getRow(prId).then(row => {
-            createQaInstance(row.prId, instanceDomainName(row.hostName), row.instanceIp || instanceIp) // TEMPORARY IP
-            res.status(201)
-            sendRowState(prId, res, next)
-          }).catch(err => {
-            defaultErrorHandler(err, res, next)
-          })
+      db.run(dbQuery, queryArgs, (err, row) => {
+        if (err) defaultErrorHandler(err, res, next)
+        getRow(prId).then(row => {
+          createQaInstance(row.prId, row.hostName, row.instanceIp || instanceIp) // TEMPORARY IP
+          res.status(201)
+          sendRowState(prId, res, next)
+        }).catch(err => {
+          defaultErrorHandler(err, res, next)
         })
-      }
-    } catch (err) {
-      defaultErrorHandler(err, res, next)
+      })
     }
   })
 
@@ -82,17 +75,13 @@ export const routes = (app, db, aws) => {
   })
 
   app.delete('/pulls/:prId', (req, res, next) => {
-    try {
-      if (!req.params.prId) {
-        res.status(400).send({ error: 'DELETE request must include prId param' })
-      } else {
-        db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, (err, row) => {
-          if (err) defaultErrorHandler(err, res, next)
-          res.sendStatus(204)
-        })
-      }
-    } catch (err) {
-      defaultErrorHandler(err, res, next)
+    if (!req.params.prId) {
+      res.status(400).send({ error: 'DELETE request must include prId param' })
+    } else {
+      db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, (err, row) => {
+        if (err) defaultErrorHandler(err, res, next)
+        res.sendStatus(204)
+      })
     }
   })
 
