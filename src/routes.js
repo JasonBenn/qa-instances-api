@@ -9,17 +9,8 @@ export const routes = (app, db, aws) => {
     next(err)
   }
 
-  const getRow = prId => {
-    return new Promise(function(resolve, reject) {
-      db.get(`SELECT * FROM pulls WHERE prId = ?`, prId, (err, row) => {
-        if (err) reject(err)
-        resolve(row)
-      })   
-    })
-  }
-
   const sendRowState = (prId, res, next) => {
-    getRow(prId).then(row => {
+    db.get(prId).then(row => {
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: row }))
     }).catch(err => {
@@ -36,11 +27,11 @@ export const routes = (app, db, aws) => {
   })
 
   app.get('/pulls', (req, res, next) => {
-    io.emit('pulls', "fetching all pulls...");
-    db.all(`SELECT * FROM pulls`, undefined, (err, rows) => {
-      if (err) return res.status(500).send({ error: err })
+    db.all().then(rows => {
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: rows }))
+    }).catch(err => {
+      res.status(500).send({ error: err })
     })
   })
 
@@ -52,14 +43,22 @@ export const routes = (app, db, aws) => {
     if (!prId || !prName || !sha) {
       res.status(400).send({ error: 'POST request must include prId, prName, and sha' })
     } else {
-      var dbQuery = 'INSERT OR IGNORE INTO pulls (prId, prName, hostName, dbName, instanceState, deployState, sha) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      var queryArgs = [prId, prName, getHostName(prName), underscoreCase(prName), "starting", "stopped", sha]
-
-      aws.createDB('')
+      const hostName = getHostName(prName)
+      db.create({
+        prId: prId,
+        sha: sha,
+        prName: prName,
+        hostName: hostName,
+        instanceState: "starting",
+        deployState: "stopped"
+      }).then(() => {
+        const dbName = underscoreCase(prName)
+        aws.createDB().then(() => db.update(prId, { dbName }))
+      })
 
       db.run(dbQuery, queryArgs, (err, row) => {
         if (err) defaultErrorHandler(err, res, next)
-        getRow(prId).then(row => {
+        db.get(prId).then(row => {
           createQaInstance(row.prId, row.hostName, row.instanceIp || instanceIp) // TEMPORARY IP
           res.status(201)
           sendRowState(prId, res, next)
@@ -78,9 +77,10 @@ export const routes = (app, db, aws) => {
     if (!req.params.prId) {
       res.status(400).send({ error: 'DELETE request must include prId param' })
     } else {
-      db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, (err, row) => {
-        if (err) defaultErrorHandler(err, res, next)
+      db.delete(prId).then(() => {
         res.sendStatus(204)
+      }).catch(err => {
+        defaultErrorHandler(err, res, next)
       })
     }
   })

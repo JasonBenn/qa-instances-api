@@ -22,6 +22,11 @@ export const defaultAwsCallback = (err, data) => {
   else console.log(data)
 }
 
+export const promiseCb = (resolve, reject) => (err, data) => {
+  if (err) reject(err)
+  resolve(data)
+}
+
 export const logErrors = (err, req, res, next) => {
   console.error(err.stack)
   next(err)
