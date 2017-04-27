@@ -13,7 +13,7 @@ sudo npm install -g npm
 git clone https://github.com/minervaproject/qa-instances-api.git
 
 # Install dependencies
-sudo apt-get install sqlite3
+sudo apt-get install sqlite3 pv
 npm install
 
 # Add node_module exectables to path

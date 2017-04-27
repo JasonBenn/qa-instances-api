@@ -31,7 +31,7 @@ export default class AWS {
 
   createDB(dbName) {
     // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
-    // const restoreBackup = execFile(process.cwd() + "/scripts/create-qa-instance-db.sh", null, {
+    // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
     const restoreBackup = execFile(process.cwd() + "/scripts/ten-secs-of-stderr.sh", null, {
       env: {
         dbName: dbName
