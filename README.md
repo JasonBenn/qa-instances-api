@@ -21,7 +21,7 @@ npm run start
 # Useful tidbits
 
 ### Useful commands:
-* Reset local database: `babel-node ./scripts/create-api-db.js`
+* Reset local database: `npm run redb`
 * Print local database: `npm run printTable`
 
 ### Half-baked commands:

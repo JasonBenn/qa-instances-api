@@ -1,7 +1,7 @@
 import sqlite3 from 'sqlite3'
 
-const command = `
-  DROP TABLE IF EXISTS pulls;
+
+const createCommand = `
   CREATE TABLE pulls (
     id INTEGER PRIMARY KEY,
     prId INTEGER, -- should match github
@@ -20,4 +20,7 @@ const command = `
 `
 
 const db = new sqlite3.Database("db.sqlite")
-db.run(command)
+db.run("DROP TABLE IF EXISTS pulls;", (err) => {
+  if (err) return console.log(err);
+  db.run(createCommand)
+})
