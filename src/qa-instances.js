@@ -1,3 +1,7 @@
+import { getHostName, underscoreCase } from './utils'
+import Promise from 'promise'
+
+
 const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
 // all states: booting|connection_lost|online|pending|rebooting|requested|running_setup|setup_failed|shutting_down|start_failed|stop_failed|stopped|stopping|terminated|terminating
 const POLL_STATE_INTERVAL = 5000
@@ -11,6 +15,7 @@ export default class QaInstances {
   }
 
   create(prId, sha, prName) {
+    console.log("qai: create");
     const hostName = getHostName(prName)
     return this.db.create({
       prId: prId,
@@ -22,10 +27,11 @@ export default class QaInstances {
     }).then(() => {
       const dbName = underscoreCase(prName)
 
-      const dbPromise = Promise((resolve, reject) => {
-        this.aws.createDB().then(stream => {
-          stream.on('data', data => this.pubsub.publish(prId, data))
-          stream.on('close', code => {
+      const dbPromise = new Promise((resolve, reject) => {
+        this.aws.createDB().then(proc => {
+          proc.stderr.on('data', data => this.pubsub.publish(prId, data.trim()))
+          proc.on('close', code => {
+            console.log('qai: createDB exited with code', code);
             if (code === 0) {
               this.db.update(prId, { dbName })
               resolve()
@@ -51,6 +57,7 @@ export default class QaInstances {
   }
 
   delete(prId) {
+    console.log("qai: delete");
     this.db.get(prId).then(({ instanceId }) => {
       const deleteDBPromise = this.aws.deleteDB()
       const stopInstancePromise = this.aws.stopInstance(instanceId)
@@ -63,6 +70,7 @@ export default class QaInstances {
   }
 
   pollInstanceState(prId, instanceId, ignoreFirstState = "", callCount = 0, currentStatus = "") {
+    console.log("qai: pollInstanceState");
     callCount += 1
 
     this.aws.describeInstances(instanceId).then(data => {

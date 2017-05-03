@@ -68,12 +68,14 @@ export default class AWS {
   }
 
   deleteInstance(instanceId) {
+    console.log("aws: deleteInstance");
     return this.opsworks.deleteInstance({
       InstanceId: instanceId
     }).promise()
   }
 
   startInstance(instanceId) {
+    console.log("aws: startInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#startInstance-property
     return this.opsworks.startInstance({
       InstanceId: instanceId
@@ -81,12 +83,14 @@ export default class AWS {
   }
 
   describeInstances(instanceId) {
+    console.log("aws: describeInstances");
     return this.opsworks.describeInstances({
       InstanceIds: [instanceId]
     }).promise()
   }
 
   stopInstance(instanceId) {
+    console.log("aws: stopInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#stopInstance-property
     return this.opsworks.stopInstance({
       InstanceId: instanceId
@@ -94,6 +98,7 @@ export default class AWS {
   }
 
   deployInstance(instanceId, domainName, dbName) {
+    console.log("aws: deployInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createDeployment-property
     // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
     return this.opsworks.createDeployment({
@@ -123,6 +128,7 @@ export default class AWS {
   }
 
   startInstanceServices(instanceId, domainName, dbName) {
+    console.log("aws: startInstanceServices");
     // This is part 2 of the deploy step. These recipes require that a database is ready.
     return this.opsworks.createDeployment({
       StackId: this.config.stackId,
@@ -152,6 +158,7 @@ export default class AWS {
   }
 
   changeRoute53Record(domainName, instanceIp, action) {
+    console.log("aws: changeRoute53Record");
     return this.route53.changeResourceRecordSets({
       ChangeBatch: {
         Changes: [{
@@ -170,10 +177,13 @@ export default class AWS {
   }
 
   createRoute53Record(prId, domainName, instanceIp) {
+    console.log("aws: createRoute53Record");
     // this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "creating" })
     return this.changeRoute53Record(domainName, instanceIp, "UPSERT")
     // , function(err, data) {
+      console.log("aws:     //");
     //   if (err) {
+      console.log("aws:     //");
     //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: err.stack });
     //     console.log(err, err.stack)
     //   } else {
@@ -183,10 +193,13 @@ export default class AWS {
   }
 
   deleteRoute53Record(prId, domainName, instanceIp) {
+    console.log("aws: deleteRoute53Record");
     // this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "deleting" })
     return this.changeRoute53Record(domainName, instanceIp, "DELETE")
     // , function(err, data) {
+      console.log("aws:     //");
     //   if (err) {
+      console.log("aws:     //");
     //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: err.stack });
     //     console.log(err, err.stack)
     //   } else {

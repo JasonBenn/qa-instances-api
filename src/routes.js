@@ -19,10 +19,12 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
   }
 
   app.get('/', function(req, res){
+    console.log("app: get /");
     res.sendFile(path.resolve('./index.html'));
   })
 
   app.get('/pulls', (req, res, next) => {
+    console.log("app: get /pulls");
     db.all().then(rows => {
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: rows }))
@@ -32,6 +34,7 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
   })
 
   app.post('/pulls', (req, res, next) => {
+    console.log("app: post /pulls");
     const { prId, sha, prName } = req.body
     const requiredArgs = [prId, sha, prName]
 
@@ -46,11 +49,13 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
   })
 
   app.get('/pulls/:prId', (req, res, next) => {
+    console.log("app: get /pulls/" + req.params.prId);
     sendRowState(req.params.prId, res, next)
   })
 
   app.delete('/pulls/:prId', (req, res, next) => {
     const { prId } = req.params
+    console.log("app: delete /pulls/" + prId);
 
     if (!prId) {
       res.status(400).send({ error: 'DELETE request must include prId' })

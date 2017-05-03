@@ -10,14 +10,14 @@ export default class DB {
   }
 
   all() {
-    if (LOG_QUERIES) console.log('fetching all');
+    if (LOG_QUERIES) console.log('db: SELECT *');
     return new Promise((resolve, reject) => {
       this.db.all(`SELECT * FROM pulls`, undefined, promiseCb(resolve, reject))
     })
   }
 
   create(data) {
-    if (LOG_QUERIES) console.log(`creating ${JSON.stringify(data)}`)
+    if (LOG_QUERIES) console.log(`db: INSERT ${JSON.stringify(data)}`)
     const { keys, questionMarks, values } = this.getQueryTemplateParams(data)
     return new Promise((resolve, reject) => {
       this.db.run(`INSERT OR IGNORE INTO pulls (${keys}) VALUES (${questionMarks})`, values, promiseCb(resolve, reject))
@@ -25,26 +25,24 @@ export default class DB {
   }
 
   get(prId) {
-    if (LOG_QUERIES) console.log(`getting ${prId}`)
+    if (LOG_QUERIES) console.log(`db: SELECT ${prId}`)
     return new Promise((resolve, reject) => {
       this.db.get(`SELECT * FROM pulls WHERE prId = ?`, prId, promiseCb(resolve, reject))
     })
   }
 
   update(prId, data) {
-    if (LOG_QUERIES) console.log(`updating ${prId} with ${JSON.stringify(data)}`)
+    if (LOG_QUERIES) console.log(`db: UPDATE ${prId} SET ${JSON.stringify(data)}`)
     return new Promise((resolve, reject) => {
-      const values = _.map(data, (value, key) => [key, value].join(' = ')).join(', ')
-      // Why isn't this ever getting logged locally?
-      if (LOG_QUERIES) console.log(values)
-      this.db.run('UPDATE pulls SET ' + values + ' WHERE prId = ?', prId, promiseCb(resolve, reject))
+      const values = _.map(data, (value, key) => [key, '"' + value + '"'].join(' = ')).join(', ')
+      this.db.run(`UPDATE pulls SET ${values} WHERE prId = ?`, prId, promiseCb(resolve, reject))
     })
   }
 
   delete(prId) {
-    if (LOG_QUERIES) console.log(`deleting ${prId}`)
+    if (LOG_QUERIES) console.log(`db: DELETE ${prId}`)
     return new Promise((resolve, reject) => {
-      this.db.run(`DELETE FROM pulls WHERE (prId = ?)`, req.params.prId, promiseCb(resolve, reject))
+      this.db.run(`DELETE FROM pulls WHERE (prId = ?)`, prId, promiseCb(resolve, reject))
     })
   }
 

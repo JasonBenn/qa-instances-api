@@ -13,12 +13,12 @@ export default class PubSub {
   }
 
   onConnection(socket) {
-    console.log('connected');
+    console.log('ps: connected');
     rebroadcastCmds(socket, this.io)
     this.sockets.push(socket)
 
     socket.on('disconnect', () => {
-      console.log('disconnected');
+      console.log('ps: disconnected');
       var i = this.sockets.indexOf(socket);
       if (i !== -1) this.sockets.splice(i, 1);
     })
@@ -29,11 +29,11 @@ export default class PubSub {
     this.sockets.forEach(socket => {
       socket.emit(channel, message)
     })
-    console.log('sent < ', channel, ':', message, ' > to', this.sockets.length, 'sockets');
+    console.log('ps: sent "' + message + '" on channel "' + channel + '" to', this.sockets.length, 'socket(s)');
   }
 
   saveThenPublish(prId, data) {
-    console.log('saving and publishing', prId, data);
+    console.log('ps: saving and publishing', prId, data);
     return new Promise((resolve, reject) => {
       this.db.update(prId, data).then(() => {
         this.publish(prId, JSON.stringify(data))
