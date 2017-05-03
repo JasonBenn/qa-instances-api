@@ -4,3 +4,29 @@
 
 This is the API server code for the QA instances project.
 The Chrome extension is [here](https://github.com/minervaproject/qa-instances-extension).
+
+# Local development
+
+### First time:
+```
+Install local QA instance coordinator nginx config and /etc/hosts line with ./nginx/install-local (you may need to update the nginx path for your system)
+```
+
+### Every time:
+```
+nvm use `cat .node-version`
+npm run start
+```
+
+# Useful tidbits
+
+### Useful commands:
+* Reset local database: `babel-node ./scripts/create-api-db.js`
+* Print local database: `npm run printTable`
+
+### Half-baked commands:
+* `bash ./scripts/deploy.sh` is meant to be run from a qa-instance-coordinator instance, but mostly I've been iterating on the instance setup ad-hoc-style... the script is probably incomplete.
+
+### Config files (as of `#d1c0a1d`):
+* aws.json: `{ "region" "accessKeyId" "secretAccessKey" }`
+* picasson.json: `{ "repoName" "region" "stackId" "layerId" "appId" "route53HostedZoneID" }`
