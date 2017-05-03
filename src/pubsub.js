@@ -24,8 +24,10 @@ export default class PubSub {
     })
   }
 
-  publish(prId, message) {
-    const channel = this.config.repoName + '/pulls/' + prId
+  publish(prId, data) {
+    const channel = this.config.repoName + '/pull/' + prId
+    const message = JSON.stringify(data)
+
     this.sockets.forEach(socket => {
       socket.emit(channel, message)
     })
@@ -36,7 +38,7 @@ export default class PubSub {
     console.log('ps: saving and publishing', prId, data);
     return new Promise((resolve, reject) => {
       this.db.update(prId, data).then(() => {
-        this.publish(prId, JSON.stringify(data))
+        this.publish(prId, data)
         resolve()
       })
     })
