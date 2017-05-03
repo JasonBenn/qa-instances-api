@@ -9,6 +9,7 @@ const createCommand = `
     hostName TEXT, -- (normalized to be valid for AWS)
     dbName TEXT, -- normalized to be valid for RDS, might entail truncation
     instanceState TEXT, -- starting|online|stopping (when no row is found, instance is assumed offline)
+    instanceId TEXT, -- Opsworks ID
     deployState TEXT, -- stopped|setting-up|deploying|created
     route53State TEXT,
     url TEXT, -- url
