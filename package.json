@@ -7,7 +7,8 @@
     "build": "babel src -d dist",
     "serve": "node dist/app.js",
     "redb": "babel-node ./scripts/create-api-db.js",
-    "printTable": "sqlite3 -column -header db.sqlite 'select * from pulls'"
+    "printTable": "sqlite3 -column -header db.sqlite 'select * from pulls'",
+    "printTallTable": "sqlite3 -line -header db.sqlite 'select * from pulls'"
   },
   "repository": {
     "type": "git",

@@ -18,11 +18,13 @@ nvm use `cat .node-version`
 npm run start
 ```
 
+I also recommend that you set `MOCK_AWS` to `true` when developing locally - this will mock out AWS API calls to speed up iteration speed.
+
 # Useful tidbits
 
 ### Useful commands:
 * Reset local database: `npm run redb`
-* Print local database: `npm run printTable`
+* Print local database: `npm run printTable` and `npm run printTallTable`
 
 ### Half-baked commands:
 * `bash ./scripts/deploy.sh` is meant to be run from a qa-instance-coordinator instance, but mostly I've been iterating on the instance setup ad-hoc-style... the script is probably incomplete.
