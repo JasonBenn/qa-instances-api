@@ -1,5 +1,7 @@
 import { getHostName, underscoreCase } from './utils'
 import Promise from 'promise'
+import treeKill from 'tree-kill'
+import _ from 'underscore'
 
 
 const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
@@ -12,6 +14,8 @@ export default class QaInstances {
     this.db = db
     this.pubsub = pubsub
     this.aws = aws
+
+    this.runningProcesses = {}
   }
 
   create(prId, sha, prName) {
@@ -29,14 +33,14 @@ export default class QaInstances {
 
       const dbPromise = new Promise((resolve, reject) => {
         this.aws.createDB().then(proc => {
-          proc.stderr.on('data', data => this.pubsub.publish(prId, data.trim()))
-          proc.on('close', code => {
-            console.log('qai: createDB exited with code', code);
-            if (code === 0) {
-              this.db.update(prId, { dbName })
-              resolve()
-            }
+          this.runningProcesses.createDB = proc
+          this.pubsub.saveThenPublish(prId, { dbState: 'starting', dbName: dbName })
+          this.pubsub.publish(prId, { createDB: '...' })
+          proc.stderr.on('data', progressUpdate => {
+            this.pubsub.publish(prId, { createDB: progressUpdate.trim() })
           })
+          this.boundOnCreateDBFinish = this.onCreateDBFinish.bind(this, prId, resolve, reject)
+          proc.on('close', this.boundOnCreateDBFinish)
         })
       })
 
@@ -56,8 +60,25 @@ export default class QaInstances {
     })
   }
 
+  onCreateDBFinish(prId, resolve, reject, code) {
+    delete this.runningProcesses.createDB
+    if (code === 0) {
+      this.pubsub.saveThenPublish(prId, { dbState: 'finished' })
+      resolve()
+    } else {
+      this.pubsub.saveThenPublish(prId, { dbState: 'error', dbErrorMessage: `exit code ${code}` })
+      reject()
+    }
+  }
+
   delete(prId) {
     console.log("qai: delete");
+
+    _.each(this.runningProcesses, (proc, key) => {
+      if (key === 'createDB') proc.removeListener('close', this.boundOnCreateDBFinish)
+      treeKill(proc.pid)
+    })
+
     this.db.get(prId).then(({ instanceId }) => {
       const deleteDBPromise = this.aws.deleteDB()
       const stopInstancePromise = this.aws.stopInstance(instanceId)
