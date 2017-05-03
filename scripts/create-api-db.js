@@ -6,14 +6,21 @@ const createCommand = `
     id INTEGER PRIMARY KEY,
     prId INTEGER, -- should match github
     prName TEXT, -- should match github
-    hostName TEXT, -- (normalized to be valid for AWS)
+    sha TEXT, -- of most recent deploy
+
     dbName TEXT, -- normalized to be valid for RDS, might entail truncation
+    dbState TEXT, -- starting|finished|error
+    dbErrorMessage, -- set when dbState is "error"
+
+    hostName TEXT, -- (normalized to be valid for AWS)
     instanceState TEXT, -- starting|online|stopping (when no row is found, instance is assumed offline)
     instanceId TEXT, -- Opsworks ID
+
     deployState TEXT, -- stopped|setting-up|deploying|created
+
     route53State TEXT,
     url TEXT, -- url
-    sha TEXT, -- of most recent deploy
+
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(prId),
     UNIQUE(hostName)

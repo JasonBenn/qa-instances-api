@@ -9,7 +9,7 @@ export const rebroadcastCmds = (socket, io) => {
     if (matched && matched.length >= 3) {
       var channel = matched[1];
       var message = matched[2];
-      console.log("cmd: received:", cmd, ", channel:", channel, ", message:", message);
+      console.log('cmd: received: "' + cmd + '", channel: "' + channel + '", message: "' + message + '"');
       io.emit(channel, message);
     } else {
       console.log('cmd: malformed:', cmd)
