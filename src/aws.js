@@ -17,44 +17,47 @@ const MOCK_AWS = true
 export default class AWS {
   constructor(config) {
     aws.config.loadFromPath(path.resolve('./config/aws.json'))
-    this.opsworks = new aws.OpsWorks()
-    this.route53 = new aws.Route53()
-    this.config = config
 
     if (MOCK_AWS) this.mockAws()
+
+    this.config = config
+    this.opsworks = new aws.OpsWorks()
+    this.route53 = new aws.Route53()
   }
 
   mockAws() {
     const aws = require('aws-sdk-mock')
-    const defaultCb = (params, cb) => cb(null, 'success')
-    aws.mock('OpsWorks', 'createInstance', defaultCb)
-    aws.mock('OpsWorks', 'deleteInstance', defaultCb)
-    aws.mock('OpsWorks', 'startInstance', defaultCb)
-    aws.mock('OpsWorks', 'describeInstances', defaultCb)
-    aws.mock('OpsWorks', 'stopInstance', defaultCb)
-    aws.mock('OpsWorks', 'createDeployment', defaultCb)
-    aws.mock('Route53', 'changeResourceRecordSets', defaultCb)
+    const defaultCb = (responseData = {}) => (params, cb) => cb(null, responseData)
+    aws.mock('OpsWorks', 'createInstance', defaultCb({ InstanceId: 1 }))
+    aws.mock('OpsWorks', 'deleteInstance', defaultCb())
+    aws.mock('OpsWorks', 'startInstance', defaultCb())
+    aws.mock('OpsWorks', 'describeInstances', defaultCb())
+    aws.mock('OpsWorks', 'stopInstance', defaultCb())
+    aws.mock('OpsWorks', 'createDeployment', defaultCb())
+    aws.mock('Route53', 'changeResourceRecordSets', defaultCb())
   }
 
   createDB(dbName) {
+    console.log("aws: createDB");
     // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
     return new Promise((resolve, reject) => {
       // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
-      const restoreBackup = execFile(process.cwd() + "/scripts/ten-secs-of-stderr.sh", null, {
-        env: {
-          dbName: dbName
-        }
+      const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
+      const proc = execFile(scriptPath, null, {
+        env: { dbName: dbName }
       })
 
-      promise.resolve(restoreBackup.stderr)
+      resolve(proc)
     })
   }
 
   deleteDB(dbName) {
+    console.log("aws: deleteDB");
     // TODO
   }
 
   createInstance(prId, hostName) {
+    console.log("aws: createInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
     return this.opsworks.createInstance({
       StackId: this.config.stackId,
