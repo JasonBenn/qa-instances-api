@@ -1,33 +1,33 @@
 import { rebroadcastCmds } from './utils'
 import Promise from 'promise'
+import _ from 'underscore'
 
 
 export default class PubSub {
-  constructor(http, db, config) {
+  constructor(config, db, http) {
     this.sockets = []
     this.db = db
     this.config = config
     this.io = require('socket.io')(http)
-    this.io.on('connection', this.onConnection)
+    this.io.on('connection', this.onConnection.bind(this))
   }
 
   onConnection(socket) {
-    console.log('connected!')
+    console.log('connected');
     rebroadcastCmds(socket, this.io)
-    console.log('sockets', this.sockets)
     this.sockets.push(socket)
 
-    socket.on('disconnect', function() {
-      console.log('disconnected!');
-      // debugger;
+    socket.on('disconnect', () => {
+      console.log('disconnected');
       var i = this.sockets.indexOf(socket);
       if (i !== -1) this.sockets.splice(i, 1);
     })
   }
 
   publish(prId, message) {
+    const channel = this.config.repoName + '/pulls/' + prId
     this.sockets.forEach(socket => {
-      socket.emit(this.config.repoName + '/pulls/' + prId, message)
+      socket.emit(channel, message)
     })
     console.log('sent < ', channel, ':', message, ' > to', this.sockets.length, 'sockets');
   }

@@ -21,9 +21,10 @@ readConfig('picasso').then(config => {
   logger(app)
 
   const db = new DB()
-  const pubsub = new PubSub(http, db, config)
   const aws = new AWS(config)
-  const qaInstances = new QaInstances(db, pubsub, aws)
+  const pubsub = new PubSub(config, db, http)
+  const qaInstances = new QaInstances(db, aws, pubsub)
+
   routes(app, db, aws, pubsub, qaInstances)
 
   Promise.resolve()

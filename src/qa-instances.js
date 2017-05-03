@@ -4,7 +4,7 @@ const POLL_STATE_INTERVAL = 5000
 
 
 export default class QaInstances {
-  constructor(db, pubsub, aws) {
+  constructor(db, aws, pubsub) {
     this.db = db
     this.pubsub = pubsub
     this.aws = aws
