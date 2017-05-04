@@ -40,7 +40,7 @@ export const getHostName = prName => "qa-" + hypenCase(prName)
 export const getDomainName = hostName => hostName + ".minervaproject.com"
 
 const arrayShallowEquals = (a, b) => a.sort().toString() === b.sort().toString()
-const REQUIRED_CONFIGS = ["repoName", "region", "stackId", "layerId", "appId", "route53HostedZoneID"]
+const REQUIRED_CONFIG_KEYS = ["repoName", "region", "stackId", "layerId", "appId", "route53HostedZoneID", "dbHost", "dbUser", "dbPassword", "dbS3BackupBucketName", "dbS3BackupGrepPrefix"]
 
 export const readConfig = filename => {
   return new Promise(function(resolve, reject) {
@@ -48,8 +48,8 @@ export const readConfig = filename => {
     fs.readFile(filepath, 'utf8', (err, data) => {
       if (err) reject(err)
       const config = JSON.parse(stripJsonComments(data))
-      const validConfig = arrayShallowEquals(REQUIRED_CONFIGS, Object.keys(config))
-      return (validConfig) ? resolve(config) : reject(config)
+      const validConfig = arrayShallowEquals(REQUIRED_CONFIG_KEYS, Object.keys(config))
+      return (validConfig) ? resolve(config) : reject("Invalid config! Must have keys " + REQUIRED_CONFIG_KEYS.join(', '))
     })
   })
 }
