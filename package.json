@@ -24,6 +24,7 @@
   "dependencies": {
     "aws-sdk": "^2.43.0",
     "body-parser": "^1.17.1",
+    "colors": "^1.1.2",
     "express": "^4.15.2",
     "morgan-body": "^0.9.5",
     "promise": "^7.1.1",

@@ -8,7 +8,7 @@ import PubSub from './pubsub'
 import AWS from './aws'
 import DB from './db'
 import QaInstances from './qa-instances'
-
+import 'colors'
 
 const port = process.env.PORT || 3000
 
@@ -31,4 +31,4 @@ readConfig('picasso').then(config => {
     .then(() => http.listen(port))
     .then(() => console.log('listening on *:' + port))
     .catch(err => console.error(err.stack))  
-})
+}).catch(err => console.log(err.bold.red))

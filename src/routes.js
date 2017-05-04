@@ -1,10 +1,12 @@
 import path from 'path'
 import { createDB, createInstance, deleteInstance, startInstance, stopInstance, deployInstance, createRoute53Record, deleteRoute53Record } from './aws'
 import { getHostName, getDomainName, underscoreCase } from './utils'
+import 'colors'
 
 
 export const routes = (app, db, aws, pubsub, qaInstances) => {  
   const defaultErrorHandler = (err, res, next) => {
+    console.log(err.bold.red);
     res.status(500).send(JSON.stringify({ error: err }))
     next(err)
   }
