@@ -65,7 +65,7 @@ export default class QaInstances {
   onCreateDBFinish(prId, resolve, reject, code) {
     delete this.runningProcesses.createDB
     if (code === 0) {
-      this.pubsub.saveThenPublish(prId, { dbState: 'finished' })
+      this.pubsub.saveThenPublish(prId, { dbState: 'online' })
       resolve()
     } else {
       this.pubsub.saveThenPublish(prId, { dbState: 'error', dbErrorMessage: `exit code ${code}` })
@@ -82,8 +82,15 @@ export default class QaInstances {
     })
 
     this.db.get(prId).then(({ instanceId }) => {
-      const deleteDBPromise = this.aws.deleteDB()
+      const deleteDBPromise = this.aws.deleteDB().then(proc => {
+        this.pubsub.saveThenPublish(prId, { dbState: 'stopping' })
+        proc.on('close', () => {
+          this.pubsub.saveThenPublish(prId, { dbName: null, dbState: null, dbErrorMessage: null })
+        })
+      })
+
       const stopInstancePromise = this.aws.stopInstance(instanceId)
+
       Promise.all([deleteDBPromise, stopInstancePromise]).then(() => {
         this.aws.deleteInstance(instanceId).then(() => {
           this.db.delete(prId)

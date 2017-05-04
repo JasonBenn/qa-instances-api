@@ -9,7 +9,7 @@ const createCommand = `
     sha TEXT, -- of most recent deploy
 
     dbName TEXT, -- normalized to be valid for RDS, might entail truncation
-    dbState TEXT, -- starting|finished|error
+    dbState TEXT, -- starting|online|stopping|error
     dbErrorMessage, -- set when dbState is "error"
 
     hostName TEXT, -- (normalized to be valid for AWS)

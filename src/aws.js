@@ -58,7 +58,17 @@ export default class AWS {
 
   deleteDB(dbName) {
     console.log("aws: deleteDB");
-    // TODO
+
+    return new Promise((resolve, reject) => {
+      // const scriptPath = process.cwd() + "/scripts/destroy-qa-db.sh"
+      const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
+      const { dbHost, dbUser, dbPassword } = this.config
+      const proc = execFile(scriptPath, null, {
+        env: { dbName, dbHost, dbUser, dbPassword }
+      })
+
+      resolve(proc)
+    })
   }
 
   createInstance(prId, hostName) {
