@@ -34,13 +34,15 @@ export default class QaInstances {
       const dbPromise = new Promise((resolve, reject) => {
         this.aws.createDB().then(proc => {
           this.runningProcesses.createDB = proc
+
           this.pubsub.saveThenPublish(prId, { dbState: 'starting', dbName: dbName })
-          this.pubsub.publish(prId, { createDB: '...' })
+
           proc.stderr.on('data', progressUpdate => {
             this.pubsub.publish(prId, { createDB: progressUpdate.trim() })
           })
-          this.boundOnCreateDBFinish = this.onCreateDBFinish.bind(this, prId, resolve, reject)
-          proc.on('close', this.boundOnCreateDBFinish)
+
+          this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
+          proc.on('close', this.createDBCallback)
         })
       })
 
@@ -75,7 +77,7 @@ export default class QaInstances {
     console.log("qai: delete");
 
     _.each(this.runningProcesses, (proc, key) => {
-      if (key === 'createDB') proc.removeListener('close', this.boundOnCreateDBFinish)
+      if (key === 'createDB') proc.removeListener('close', this.createDBCallback)
       treeKill(proc.pid)
     })
 

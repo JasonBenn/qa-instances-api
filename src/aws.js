@@ -39,12 +39,17 @@ export default class AWS {
 
   createDB(dbName) {
     console.log("aws: createDB");
-    // https://nodejs.org/api/child_process.html#child_process_child_process_execfile_file_args_options_callback
     return new Promise((resolve, reject) => {
-      // const restoreBackup = execFile(process.cwd() + "/scripts/create-api-db.sh", null, {
+      // const scriptPath = process.cwd() + "/scripts/create-api-db.sh"
       const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
       const proc = execFile(scriptPath, null, {
-        env: { dbName: dbName }
+        env: { 
+          dbName: dbName,
+          dbHost: this.config.dbHost,
+          dbUser: this.config.dbUser,
+          dbS3BackupBucketName: this.config.dbS3BackupBucketName,
+          dbS3BackupGrepPrefix: this.config.dbS3BackupGrepPrefix
+        }
       })
 
       resolve(proc)
