@@ -13,7 +13,7 @@ const createCommand = `
     dbErrorMessage, -- set when dbState is "error"
 
     hostName TEXT, -- (normalized to be valid for AWS)
-    instanceState TEXT, -- starting|online|stopping (when no row is found, instance is assumed offline)
+    instanceState TEXT, -- starting|online|stopping|offline (and when no row is found, instance is assumed offline)
     instanceId TEXT, -- Opsworks ID
 
     deployState TEXT, -- stopped|setting-up|deploying|created

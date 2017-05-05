@@ -38,7 +38,7 @@ export default class QaInstances {
           this.pubsub.saveThenPublish(prId, { dbState: 'starting', dbName: dbName })
 
           proc.stderr.on('data', progressUpdate => {
-            this.pubsub.publish(prId, { createDB: progressUpdate.trim() })
+            this.pubsub.publish(prId, { dbState: 'starting', dbName: dbName, createDB: progressUpdate.trim() })
           })
 
           this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
@@ -47,7 +47,7 @@ export default class QaInstances {
       })
 
       const createInstancePromise = this.aws.createInstance(prId, hostName).then(data => {
-        this.db.update(prId, { instanceId: data.InstanceId })
+        this.db.update(prId, { instanceState: 'starting', instanceId: data.InstanceId })
       })
 
       // this.aws.deployInstance(instanceId, domainName, dbName)
@@ -85,15 +85,18 @@ export default class QaInstances {
       const deleteDBPromise = this.aws.deleteDB().then(proc => {
         this.pubsub.saveThenPublish(prId, { dbState: 'stopping' })
         proc.on('close', () => {
-          this.pubsub.saveThenPublish(prId, { dbName: null, dbState: null, dbErrorMessage: null })
+          this.pubsub.saveThenPublish(prId, { dbName: null, dbState: 'offline', dbErrorMessage: null })
         })
       })
 
       const stopInstancePromise = this.aws.stopInstance(instanceId)
 
       Promise.all([deleteDBPromise, stopInstancePromise]).then(() => {
+        this.saveThenPublish({ instanceState: 'stopped' })
         this.aws.deleteInstance(instanceId).then(() => {
+          this.saveThenPublish({ instanceState: 'deleted' })
           this.db.delete(prId)
+          this.publish({ instanceState: 'offline' })
         })
       })
     })

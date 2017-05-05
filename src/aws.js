@@ -39,13 +39,18 @@ export default class AWS {
 
   createDB(dbName) {
     console.log("aws: createDB");
-
     return new Promise((resolve, reject) => {
       // const scriptPath = process.cwd() + "/scripts/create-qa-db.sh"
       const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
-      const { dbHost, dbUse, dbS3BackupBucketName, dbS3BackupGrepPrefix } = this.config
       const proc = execFile(scriptPath, null, {
-        env: { dbName, dbHost, dbUser, dbPassword, dbS3BackupBucketName, dbS3BackupGrepPrefix }
+        env: { 
+          dbName: dbName,
+          dbHost: this.config.dbHost,
+          dbUser: this.config.dbUser,
+          dbPassword: this.config.dbPassword,
+          dbS3BackupBucketName: this.config.dbS3BackupBucketName,
+          dbS3BackupGrepPrefix: this.config.dbS3BackupGrepPrefix
+        }
       })
 
       resolve(proc)
@@ -54,13 +59,16 @@ export default class AWS {
 
   deleteDB(dbName) {
     console.log("aws: deleteDB");
-
     return new Promise((resolve, reject) => {
       // const scriptPath = process.cwd() + "/scripts/destroy-qa-db.sh"
       const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
-      const { dbHost, dbUser, dbPassword } = this.config
       const proc = execFile(scriptPath, null, {
-        env: { dbName, dbHost, dbUser, dbPassword }
+        env: { 
+          dbName: dbName,
+          dbHost: this.config.dbHost,
+          dbUser: this.config.dbUser,
+          dbPassword: this.config.dbPassword
+        }
       })
 
       resolve(proc)
