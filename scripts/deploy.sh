@@ -19,8 +19,12 @@ npm install
 # Add node_module exectables to path
 PATH="/home/ubuntu/qa-instances/node_modules/.bin:$PATH"
 
-# Start DB
-babel-node scripts/create-db.js
+# Start DB if none exists
+# babel-node scripts/create-api-db.js
+
+# Run these from your computer
+# scp -i ~/.ssh/staging.pem ./config/aws.json ubuntu@qa-instance-coordinator1.vpcstaging:/home/ubuntu/qa-instances-api/config
+# scp -i ~/.ssh/staging.pem ./config/picasso.json ubuntu@qa-instance-coordinator1.vpcstaging:/home/ubuntu/qa-instances-api/config
 
 # Start app
 npm run build

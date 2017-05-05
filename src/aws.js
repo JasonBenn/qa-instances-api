@@ -11,7 +11,7 @@ const hostName = "qa-features-lo-detail-page"
 const instanceIp = "54.213.81.155"
 const domainName = getDomainName(hostName)
 
-const MOCK_AWS = true
+const MOCK_AWS = false
 
 
 export default class AWS {
@@ -40,9 +40,8 @@ export default class AWS {
   createDB(dbName) {
     console.log("aws: createDB");
     return new Promise((resolve, reject) => {
-      // const scriptPath = process.cwd() + "/scripts/create-qa-db.sh"
-      const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
-      const proc = execFile(scriptPath, null, {
+      const scriptPath = MOCK_AWS ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/create-qa-db.sh"
+      const proc = execFile(process.cwd() + scriptPath, null, {
         env: { 
           dbName: dbName,
           dbHost: this.config.dbHost,
@@ -60,9 +59,8 @@ export default class AWS {
   deleteDB(dbName) {
     console.log("aws: deleteDB");
     return new Promise((resolve, reject) => {
-      // const scriptPath = process.cwd() + "/scripts/destroy-qa-db.sh"
-      const scriptPath = process.cwd() + "/scripts/ten-secs-of-stderr.sh"
-      const proc = execFile(scriptPath, null, {
+      const scriptPath = MOCK_AWS ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/destroy-qa-db.sh"
+      const proc = execFile(process.cwd() + scriptPath, null, {
         env: { 
           dbName: dbName,
           dbHost: this.config.dbHost,
