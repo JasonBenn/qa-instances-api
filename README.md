@@ -19,7 +19,7 @@ nvm use `cat .node-version`
 npm run start
 ```
 
-I also recommend that you set `MOCK_AWS` to `true` when developing locally - this will mock out AWS API calls to speed up iteration speed.
+Set the `local` boolean in config/picasso.json to `true` when developing locally - this will mock out AWS API calls.
 
 # Useful tidbits
 

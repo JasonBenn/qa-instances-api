@@ -4,21 +4,12 @@ import aws from 'aws-sdk'
 import Promise from 'promise'
 import { getDomainName } from './utils'
 
-// These will all eventually come from DB.
-const instanceId = 'aa72efd0-79f7-4782-be3a-a807985fec34'
-const dbName = "review_features_lo_detail_page"
-const hostName = "qa-features-lo-detail-page"
-const instanceIp = "54.213.81.155"
-const domainName = getDomainName(hostName)
-
-const MOCK_AWS = false
-
 
 export default class AWS {
   constructor(config) {
     aws.config.loadFromPath(path.resolve('./config/aws.json'))
 
-    if (MOCK_AWS) this.mockAws()
+    if (config.local) this.mockAws()
 
     this.config = config
     this.opsworks = new aws.OpsWorks()
@@ -40,7 +31,7 @@ export default class AWS {
   createDB(dbName) {
     console.log("aws: createDB");
     return new Promise((resolve, reject) => {
-      const scriptPath = MOCK_AWS ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/create-qa-db.sh"
+      const scriptPath = this.config.local ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/create-qa-db.sh"
       const proc = execFile(process.cwd() + scriptPath, null, {
         env: { 
           dbName: dbName,
@@ -59,7 +50,7 @@ export default class AWS {
   deleteDB(dbName) {
     console.log("aws: deleteDB");
     return new Promise((resolve, reject) => {
-      const scriptPath = MOCK_AWS ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/destroy-qa-db.sh"
+      const scriptPath = this.config.local ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/destroy-qa-db.sh"
       const proc = execFile(process.cwd() + scriptPath, null, {
         env: { 
           dbName: dbName,
