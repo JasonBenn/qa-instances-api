@@ -1,6 +1,6 @@
 # /bin/bash
 
 killall node
-npm install
+yarn install
 npm run build
 npm run serve
