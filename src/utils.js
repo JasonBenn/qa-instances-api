@@ -1,6 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 import stripJsonComments from 'strip-json-comments'
+import 'colors'
 
 
 export const rebroadcastCmds = (socket, io) => {
@@ -39,12 +40,12 @@ export const underscoreCase = normalize('_')
 export const getHostName = prName => "qa-" + hypenCase(prName)
 export const getDomainName = hostName => hostName + ".minervaproject.com"
 
-const arrayShallowEquals = (a, b) => a.sort().toString() === b.sort().toString()
+const isSubset = (a, b) => a.every(el => b.includes(el))
 const REQUIRED_CONFIG_KEYS = ["repoName", "region", "stackId", "layerId", "appId", "route53HostedZoneID", "dbHost", "dbUser", "dbPassword", "dbS3BackupBucketName", "dbS3BackupGrepPrefix"]
 
 export const validateConfig = config => {
-  const validConfig = arrayShallowEquals(REQUIRED_CONFIG_KEYS, Object.keys(config))
-  console.assert(validConfig, "Invalid config! Must have keys " + REQUIRED_CONFIG_KEYS.join(', '))
+  const validConfig = isSubset(REQUIRED_CONFIG_KEYS, Object.keys(config))
+  if (!validConfig) console.error("Invalid config!".bold.red + " Must have keys: " + REQUIRED_CONFIG_KEYS.join(', '));
 }
 
 export const readJSON = filename => {
