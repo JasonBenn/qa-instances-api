@@ -3,5 +3,7 @@ import { exec } from 'child_process'
 import kexec from 'kexec'
 
 
-const { dbHost, dbUser, dbPassword, dbName } = readJSON('./config/picasso.json')
-kexec(`mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} ${dbName}`)
+readJSON('config/picasso.json').then(config => {
+  const { dbHost, dbUser, dbPassword, dbName } = config
+  kexec(`mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} ${dbName}`)
+})
