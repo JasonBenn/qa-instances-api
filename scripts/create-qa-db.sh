@@ -1,7 +1,7 @@
 echo """
-CREATE DATABASE IF NOT EXISTS ${dbName};
-  GRANT ALL PRIVILEGES ON ${dbName}.* TO '$dbUser'@'%';
-""" | mysql -h $dbHost -u $dbUser -p $dbPassword
+CREATE DATABASE IF NOT EXISTS $dbName;
+  GRANT ALL PRIVILEGES ON $dbName.* TO '${dbUser}'@'%';
+""" | mysql -h $dbHost -u $dbUser -p$dbPassword
 echo -n "created DB, granted permissions" 1>&2
 
 # AWS credentials are stored in ~/.aws/
@@ -13,4 +13,4 @@ if [ ! -f $dbFilename ]; then
   aws s3 cp s3://$dbS3BackupBucketName/$latestBackupName $dbFilename 1>&2
 fi
 
-pv --timer --eta $dbFilename | gunzip | mysql -h $dbHost -u $dbUser -p $dbPassword $dbName
+pv --timer --eta $dbFilename | gunzip | mysql -h $dbHost -u $dbUser -p$dbPassword $dbName

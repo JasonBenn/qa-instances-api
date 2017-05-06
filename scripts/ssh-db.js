@@ -4,4 +4,4 @@ import kexec from 'kexec'
 
 
 const { dbHost, dbUser, dbPassword, dbName } = readJSON('./config/picasso.json')
-kexec(`mysql -h ${dbHost} -u ${dbUser} -p ${dbPassword} ${dbName}`)
+kexec(`mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} ${dbName}`)
