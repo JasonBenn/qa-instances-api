@@ -5,7 +5,7 @@
   "scripts": {
     "start": "nodemon src/app.js --exec babel-node",
     "build": "babel src -d dist",
-    "serve": "forever -l /var/log/qa-instance-coordinator.log dist/app.js",
+    "serve": "forever -l /var/log/qa-instance-coordinator.log --append dist/app.js",
     "redb": "babel-node ./scripts/create-api-db.js",
     "ssh-db": "babel-node ./scripts/ssh-db.js",
     "deploy": "ssh qa-instance-coordinator1.vpcstaging 'cd qa-instances-api; git pull; bash ./scripts/deploy.sh'",
