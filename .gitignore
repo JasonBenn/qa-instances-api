@@ -3,3 +3,4 @@ db.sqlite
 npm-debug.log
 dist
 config/*
+logs/*.log
