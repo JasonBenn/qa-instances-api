@@ -1,6 +1,6 @@
 echo """
-CREATE DATABASE IF NOT EXISTS $dbName;
-  GRANT ALL PRIVILEGES ON $dbName.* TO '${dbUser}'@'%';
+CREATE DATABASE IF NOT EXISTS ${dbName};
+GRANT ALL PRIVILEGES ON ${dbName}.* TO '${dbUser}'@'%';
 """ | mysql -h $dbHost -u $dbUser -p$dbPassword
 echo -n "created DB, granted permissions" 1>&2
 
