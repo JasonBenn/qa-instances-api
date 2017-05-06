@@ -1,6 +1,6 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import { logErrors, readConfig } from './utils'
+import { logErrors, readJSON, validateConfig } from './utils'
 import logger from 'morgan-body';
 import Promise from 'promise'
 import { routes } from './routes'
@@ -15,7 +15,9 @@ const port = process.env.PORT || 3000
 const app = express()
 const http = require('http').Server(app)
 
-readConfig('picasso').then(config => {
+readJSON('./config/picasso.json').then(config => {
+  validateConfig(config)
+
   app.use(bodyParser.json())
   app.use(logErrors)
   logger(app)
