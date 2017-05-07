@@ -32,7 +32,7 @@ export default class QaInstances {
       const dbName = underscoreCase(prName)
 
       const dbPromise = new Promise((resolve, reject) => {
-        this.aws.createDB().then(proc => {
+        this.aws.createDB(dbName).then(proc => {
           this.runningProcesses.createDB = proc
 
           this.pubsub.saveThenPublish(prId, { dbState: 'starting', dbName: dbName })
