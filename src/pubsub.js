@@ -1,6 +1,7 @@
 import { rebroadcastCmds } from './utils'
-import Promise from 'promise'
+import Promise from 'bluebird'
 import _ from 'underscore'
+const LOG_MESSAGES = false
 
 
 export default class PubSub {

@@ -2,7 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import { logErrors, readJSON, validateConfig } from './utils'
 import logger from 'morgan-body';
-import Promise from 'promise'
+import Promise from 'bluebird'
 import { routes } from './routes'
 import PubSub from './pubsub'
 import AWS from './aws'

@@ -1,8 +1,8 @@
 import { execFile } from 'child_process'
 import path from 'path'
 import aws from 'aws-sdk'
-import Promise from 'promise'
-import { getDomainName } from './utils'
+import Promise from 'bluebird'
+import { getDomainName, getPipeDataCmd } from './utils'
 
 
 export default class AWS {

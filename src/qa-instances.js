@@ -1,5 +1,5 @@
-import { getHostName, underscoreCase } from './utils'
-import Promise from 'promise'
+import { getHostName, underscoreCase, getPipeDataCmd } from './utils'
+import Promise from 'bluebird'
 import treeKill from 'tree-kill'
 import _ from 'underscore'
 
