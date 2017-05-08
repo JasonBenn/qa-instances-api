@@ -18,6 +18,13 @@ export const rebroadcastCmds = (socket, io) => {
   })
 }
 
+export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
+  const copyToTmpFile = 'tee > /tmp/staging-db-backup'
+  const pipeToRDS = `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `
+  return local ? copyToTmpFile : pipeToRDS
+}
+
+
 export const defaultAwsCb = (err, data) => {
   if (err) console.log(err, err.stack)
   else console.log(data)

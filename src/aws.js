@@ -29,17 +29,17 @@ export default class AWS {
   }
 
   createDB(dbName) {
-    console.log("aws: createDB");
+    console.log("aws: createDB", dbName);
     return new Promise((resolve, reject) => {
-      const scriptPath = this.config.local ? "/scripts/ten-secs-of-stderr.sh" : "/scripts/create-qa-db.sh"
-      const proc = execFile(process.cwd() + scriptPath, null, {
+      const proc = execFile(process.cwd() + "/scripts/create-qa-db.sh", null, {
         env: { 
           dbName: dbName,
           dbHost: this.config.dbHost,
           dbUser: this.config.dbUser,
           dbPassword: this.config.dbPassword,
           dbS3BackupBucketName: this.config.dbS3BackupBucketName,
-          dbS3BackupGrepPrefix: this.config.dbS3BackupGrepPrefix
+          dbS3BackupGrepPrefix: this.config.dbS3BackupGrepPrefix,
+          pipeDataCmd: getPipeDataCmd(this.config)
         }
       })
 
