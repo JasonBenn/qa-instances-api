@@ -32,7 +32,7 @@ export default class PubSub {
     this.sockets.forEach(socket => {
       socket.emit(channel, message)
     })
-    console.log('ps: sent "' + message + '" on channel "' + channel + '" to', this.sockets.length, 'socket(s)');
+    if (LOG_MESSAGES) console.log('ps: sent "' + message + '" on channel "' + channel + '" to', this.sockets.length, 'socket(s)');
   }
 
   saveThenPublish(prId, data) {
