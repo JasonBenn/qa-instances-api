@@ -1,4 +1,5 @@
 import { getHostName, underscoreCase, getPipeDataCmd } from './utils'
+import { States } from './db'
 import Promise from 'bluebird'
 import treeKill from 'tree-kill'
 import _ from 'underscore'
@@ -21,46 +22,92 @@ export default class QaInstances {
     this.runningProcesses = {}
   }
 
+  // TODO: check that states starting, online are triggered properly for the correct States.
   create(prId, sha, prName) {
     console.log("qai: create");
+
     const hostName = getHostName(prName)
+    const domainName = getDomainName(hostName)
+
     return this.db.create({
       prId: prId,
       sha: sha,
       prName: prName,
       hostName: hostName,
-      instanceState: "starting",
-      deployState: "stopped"
+      domainName: domainName,
+      overallState: States.Starting
     }).then(() => {
-      const dbName = underscoreCase(prName)
 
+      const dbName = underscoreCase(prName)
+      let deployInstancePromise = new Promise() // Never resolves, but will be reassigned soon.
+      let instanceId
+
+      // createDB, updates dbState.
       const dbPromise = new Promise((resolve, reject) => {
+        this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
+
         this.aws.createDB(dbName).then(proc => {
           this.runningProcesses.createDB = proc
-
-          this.pubsub.saveThenPublish(prId, { dbState: 'starting', dbName: dbName })
-
-          proc.stderr.on('data', progressUpdate => {
-            this.pubsub.publish(prId, { createDB: progressUpdate.trim() })
-          })
-
+          proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
           this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
           proc.on('close', this.createDBCallback)
         })
       })
 
-      const createInstancePromise = this.aws.createInstance(prId, hostName).then(data => {
-        this.db.update(prId, { instanceState: 'starting', instanceId: data.InstanceId })
+      // createInstance, updates instanceState.
+      this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
+      const createInstancePromise = this.aws.createInstance(prId, hostName).then(({ InstanceId }) => {
+        instanceId = InstanceId
+        this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId })
       })
 
-      // this.aws.deployInstance(instanceId, domainName, dbName)
+      // deployInstance, updates deployInstanceState.
+      createInstancePromise.then(() => {
+        this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
+        deployInstancePromise = new Promise((resolve, reject) => {
+          this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
+            // What is the state this first time?
+            this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
+          })
+        })
+      })
 
-      Promise.all([dbPromise, createInstancePromise]).then(() => {
-        console.log('db and deploy finished, servicing!');
-        // this.aws.createRoute53Record(prId, getDomainName(hostName), instanceIp)
-        // this.aws.startInstance(instanceId, "stopped")
-        // this.pollInstanceState(instanceId, "online")
-        // this.aws.startInstanceServices
+      Promise.all([dbPromise, deployInstancePromise]).then(() => {
+
+        // createRoute53Record, updates route53State.
+        this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
+        const route53Promise = this.aws.createRoute53Record(prId, domainName, instanceIp).then(({ url }) => {
+          // TODO: check if URL is present in params.
+          console.log("qai: createRoute53Record callback args:", arguments)
+          this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
+        })
+
+        // startInstance, updates startInstanceState.
+        this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
+        const startInstancePromise = new Promise((resolve, reject) => {
+          this.aws.startInstance(instanceId).then(() => {
+            console.log("qai: startInstance callback args:", arguments)
+            // Shoot, what is its state going to be here?
+            this.pollInstanceState({ prId, resolve, reject, uiType: "startInstance", instanceId, ignoreFirstState: "offline" })
+          })
+        })
+
+        Promise.all([route53Promise, startInstancePromise]).then(() => {
+
+          // serviceInstance, updates serviceInstanceState.
+          this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
+          const serviceInstancePromise = new Promise((resolve, reject) => {
+            this.aws.serviceInstance({ instanceId, domainName, dbName }).then(() => {
+              console.log('qai: serviceInstance callback args:', arguments)
+              // TODO: how do I resolve this promise? Will I need http://docs.aws.amazon.com/cli/latest/reference/deploy/get-deployment.html
+              // to get info about a running deployment?
+            })
+          })
+
+          // Finally, after serviceInstance, update overallState.
+          serviceInstancePromise.then(() => {
+            this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+          })
       })
     })
   }
@@ -68,10 +115,10 @@ export default class QaInstances {
   onCreateDBFinish(prId, resolve, reject, code) {
     delete this.runningProcesses.createDB
     if (code === 0) {
-      this.pubsub.saveThenPublish(prId, { dbState: 'online' })
+      this.pubsub.saveThenPublish(prId, { dbState: States.Online })
       resolve()
     } else {
-      this.pubsub.saveThenPublish(prId, { dbState: 'error', dbErrorMessage: `exit code ${code}` })
+      this.pubsub.saveThenPublish(prId, { dbState: States.Error, dbErrorMessage: `exit code ${code}` })
       reject()
     }
   }
@@ -79,24 +126,55 @@ export default class QaInstances {
   delete(prId) {
     console.log("qai: delete");
 
+    // Kill any running instance creation processes.
     _.each(this.runningProcesses, (proc, key) => {
       if (key === 'createDB') proc.removeListener('close', this.createDBCallback)
       treeKill(proc.pid)
     })
 
-    this.db.get(prId).then(({ instanceId, dbName }) => {
+    this.pubsub.saveThenPublish(prId, { 
+      overallState: States.Stopping,
+      // These states don't make sense in the context of stopping, so set them Offline.
+      startInstanceState: States.Offline,
+      startInstanceErrorMessage: null,
+      serviceInstanceState: States.Offline,
+      serviceInstanceErrorMessage: null
+    })
+
+    this.db.get(prId).then(({ instanceId, domainName, instanceIp, dbName }) => {
+
+      // deleteDB, updates dbState.
       const deleteDBPromise = this.aws.deleteDB(dbName).then(proc => {
-        this.pubsub.saveThenPublish(prId, { dbState: 'stopping' })
+        this.pubsub.saveThenPublish(prId, { dbState: States.Stopping, dbErrorMessage: null })
         proc.on('close', () => {
-          this.pubsub.saveThenPublish(prId, { dbName: null, dbState: 'offline', dbErrorMessage: null })
+          this.pubsub.saveThenPublish(prId, { dbState: States.Offline, dbName: null })
         })
       })
 
-      const stopInstancePromise = this.aws.stopInstance(instanceId)
+      // stopInstance, updates instanceState.
+      this.pubsub.saveThenPublish(prId, { instanceState: States.Stopping, instanceErrorMessage: null })
+      const stopInstancePromise = new Promise((resolve, reject) => {
+        this.aws.stopInstance(instanceId).then(() => {
+          console.log("qai: stopInstance callback args:", arguments);
+          // Shoot, what is its state going to be here?
+          // DANG, that's confusing. Instance State is apparently "online" when it's created - but "online" really means it's running. DAMN DAMN DAMN. I want "online" to mean running, which only happens after serviceInstance.
+          // instanceState: Online could correspond to "Created". deployState: "online" could correspond to Deployed. serviceInstance: "online" could correspond to running. overallState: "online" could correspond to "running".
+          // TODO: Stopping view: it really only makes sense to display state of overallState, dbState, instanceState, route53State.
+          this.pollInstanceState({ prId, resolve, reject, uiType: "instanceState", instanceId, ignoreFirstState: "online" })
+        })
+      })
 
-      Promise.all([deleteDBPromise, stopInstancePromise]).then(() => {
-        this.pubsub.saveThenPublish(prId, { instanceState: 'offline' })
+      // deleteRoute53Record, updates route53State.
+      this.pubsub.saveThenPublish(prId, { route53State: States.Stopping, route53ErrorMessage: null })
+      const route53Promise = this.aws.deleteRoute53Record(prId, domainName, instanceIp).then(() => {
+        this.pubsub.saveThenPublish(prId, { route53State: States.Offline, url: null })
+      })
+
+      Promise.all([deleteDBPromise, stopInstancePromise, route53Promise]).then(() => {
+
+        // deleteInstance, updates overallState.
         this.aws.deleteInstance(instanceId).then(() => {
+          this.pubsub.publish(prId, { overallState: States.Offline })
           this.db.delete(prId)
         })
       })

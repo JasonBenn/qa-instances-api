@@ -4,6 +4,14 @@ import _ from 'underscore'
 const LOG_QUERIES = true
 
 
+export const States = {
+  Offline: "offline",
+  Starting: "starting",
+  Online: "online",
+  Stopping: "stopping",
+  Error: "error"
+}
+
 export default class DB {
   constructor() {
     this.db = new SQLite3.Database("db.sqlite")
