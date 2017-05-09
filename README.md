@@ -67,6 +67,7 @@ prName TEXT, -- e.g., features/hc-index
 sha TEXT, -- (short) e.g., c38d1a9
 dbName TEXT, -- prName, snake-cased so it's a valid MySQL table name
 hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
+domainName TEXT, -- hostName + ".minervaproject.com"
 instanceId TEXT, -- Opsworks ID of created instance
 url TEXT, -- route53 url
 ```
@@ -95,11 +96,11 @@ serviceInstanceErrorMessage TEXT,
 
 There are also progress updates, which are periodically emitted from long-running tasks and forwarded to the frontend for display via pubsub. However, these messages are not database-backed.
 ```
-OverallProgress
-DBProgress
-InstanceProgress
-DeployInstanceProgress
-Route53Progress
-StartInstanceProgress
-ServiceInstanceProgress
+overallProgress
+dbProgress
+instanceProgress
+deployInstanceProgress
+route53Progress
+startInstanceProgress
+serviceInstanceProgress
 ```
