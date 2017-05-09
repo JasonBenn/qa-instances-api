@@ -18,6 +18,22 @@ export const rebroadcastCmds = (socket, io) => {
   })
 }
 
+export const checkForIllegalStateTransitions = (prId, data) => {
+  // Prevent race conditions caused by steps that go from "starting" to "online" or "stopping" to "offline" too quickly.
+
+  // IF (data includes a key ending in "State")
+    // GET DB 
+    // this.db.get(prId).then(record => {})
+      // FOR EACH key ending in "State"
+        // Check that it's not an illegal transition (offline -> stopping or online -> starting)
+        // if yes: do nothing
+        // Resolve promise
+  // ELSE
+    // resolve promise
+
+  return new Promise.resolve(true)
+}
+
 export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
   const copyToTmpFile = 'tee > /tmp/staging-db-backup'
   const pipeToRDS = `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `

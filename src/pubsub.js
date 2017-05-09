@@ -1,6 +1,7 @@
-import { rebroadcastCmds } from './utils'
+import { rebroadcastCmds, checkForIllegalStateTransitions } from './utils'
 import Promise from 'bluebird'
 import _ from 'underscore'
+import 'colors'
 const LOG_MESSAGES = false
 
 
@@ -36,11 +37,19 @@ export default class PubSub {
   }
 
   saveThenPublish(prId, data) {
-    console.log('ps: saving and publishing', prId, data);
     return new Promise((resolve, reject) => {
-      this.db.update(prId, data).then(() => {
-        this.publish(prId, data)
-        resolve()
+      this.checkForIllegalStateTransitions(prId, data).then(isLegal => {
+
+        if (isLegal) {
+          console.log('ps: saving and publishing', prId, data);
+          this.db.update(prId, data).then(() => {
+            this.publish(prId, data)
+            resolve()
+          })
+        } else {
+          console.log('ps: ignoring illegal state transition'.yellow, prId, data);
+        }
+
       })
     })
   }
