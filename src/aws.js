@@ -62,8 +62,8 @@ export default class AWS {
   }
 
   createInstance(prId, hostName) {
-    console.log("aws: createInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
+    console.log("aws: createInstance");
     return this.opsworks.createInstance({
       StackId: this.config.stackId,
       LayerIds: [this.config.layerId],
@@ -80,8 +80,8 @@ export default class AWS {
   }
 
   startInstance(instanceId) {
-    console.log("aws: startInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#startInstance-property
+    console.log("aws: startInstance");
     return this.opsworks.startInstance({
       InstanceId: instanceId
     }).promise()
@@ -95,17 +95,16 @@ export default class AWS {
   }
 
   stopInstance(instanceId) {
-    console.log("aws: stopInstance");
     // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#stopInstance-property
+    console.log("aws: stopInstance");
     return this.opsworks.stopInstance({
       InstanceId: instanceId
     }).promise()
   }
 
-  deployInstance(instanceId, domainName, dbName) {
-    console.log("aws: deployInstance");
-    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createDeployment-property
+  deployInstance({ instanceId, domainName, dbName }) {
     // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
+    console.log("aws: deployInstance");
     return this.opsworks.createDeployment({
       StackId: this.config.stackId,
       AppId: this.config.appId,
@@ -132,9 +131,9 @@ export default class AWS {
     }).promise()
   }
 
-  startInstanceServices(instanceId, domainName, dbName) {
-    console.log("aws: startInstanceServices");
+  serviceInstance({ instanceId, domainName, dbName }) {
     // This is part 2 of the deploy step. These recipes require that a database is ready.
+    console.log("aws: startInstanceServices");
     return this.opsworks.createDeployment({
       StackId: this.config.stackId,
       AppId: this.config.appId,
@@ -162,9 +161,9 @@ export default class AWS {
     }).promise()
   }
 
-  changeRoute53Record(domainName, instanceIp, action) {
+  changeRoute53Record({ domainName, instanceIp, action }) {
     console.log("aws: changeRoute53Record");
-    return this.route53.changeResourceRecordSets({
+    const args = {
       ChangeBatch: {
         Changes: [{
           Action: action,
@@ -178,39 +177,18 @@ export default class AWS {
         Comment: "QA instance"
       },
       HostedZoneId: this.config.route53HostedZoneID
-    }).promise()
+    }
+    return this.route53.changeResourceRecordSets(args).promise()
   }
 
   createRoute53Record(prId, domainName, instanceIp) {
     console.log("aws: createRoute53Record");
-    // this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "creating" })
-    return this.changeRoute53Record(domainName, instanceIp, "UPSERT")
-    // , function(err, data) {
-      console.log("aws:     //");
-    //   if (err) {
-      console.log("aws:     //");
-    //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: err.stack });
-    //     console.log(err, err.stack)
-    //   } else {
-    //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "created" });
-    //   }
-    // })
+    return this.changeRoute53Record({ domainName, instanceIp, action: "UPSERT" })
   }
 
   deleteRoute53Record(prId, domainName, instanceIp) {
     console.log("aws: deleteRoute53Record");
-    // this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "deleting" })
-    return this.changeRoute53Record(domainName, instanceIp, "DELETE")
-    // , function(err, data) {
-      console.log("aws:     //");
-    //   if (err) {
-      console.log("aws:     //");
-    //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: err.stack });
-    //     console.log(err, err.stack)
-    //   } else {
-    //     this.pubsub.saveThenPublish('picasso/pull/' + prId, { route53State: "deleted" });
-    //   }
-    // })
+    return this.changeRoute53Record({ domainName, action: "DELETE" })
   }
 
 }
