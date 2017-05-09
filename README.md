@@ -43,3 +43,63 @@ mv /usr/local/etc/nginx/picasso.conf mv /usr/local/etc/nginx/picasso.conf.backup
 ### Config files (as of `#d1c0a1d`):
 * aws.json: `{ "region" "accessKeyId" "secretAccessKey" }`
 * picasson.json: `{ "repoName" "region" "stackId" "layerId" "appId" "route53HostedZoneID" }`
+
+# Architecture
+
+### Division of responsibilities
+
+`src/app.js`: app entry point. Initializes instances of `AWS`, `DB`, `PubSub`, and `QaInstances` classes and passes them to the `routes` function.
+`src/routes.js`: registers route handlers on the Express server instance. These handlers mostly just parse inputs, pass them to `QaInstances` instance, and return HTTP responses.
+`src/qa-instances.js`: specifies the sequence of AWS API calls, DB calls, and PubSub messages. Forms the bulk of the code.
+`src/aws.js`: wrappers for AWS API calls.
+`src/db.js`: CRUD wrappers for the `pulls` table (see Data Model section).
+`src/pubsub.js`: listens for websocket connect and disconnect events, storing them in an array; defines `publish` and `saveThenPublish` methods, which publish data to each connected client either immediately or after a DB update.
+`src/utils.js`: function junk drawer.
+
+### Data model
+
+There is one database table: `pulls`.
+
+About a third of the fields are properties of the instance:
+```
+prId INTEGER, -- e.g., 2300
+prName TEXT, -- e.g., features/hc-index
+sha TEXT, -- (short) e.g., c38d1a9
+dbName TEXT, -- prName, snake-cased so it's a valid MySQL table name
+hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
+instanceId TEXT, -- Opsworks ID of created instance
+url TEXT, -- route53 url
+```
+
+Another third are states {offline|starting|online|stopping|error} that each map to one line of the UI.
+```
+overallState TEXT,
+dbState TEXT,
+instanceState TEXT,
+deployInstanceState TEXT,
+route53State TEXT,
+startInstanceState TEXT,
+serviceInstanceState TEXT,
+```
+
+The last third are error messages in case of an `error` state above.
+```
+overallErrorMessage TEXT,
+dbErrorMessage TEXT,
+instanceErrorMessage TEXT,
+deployInstanceErrorMessage TEXT,
+route53ErrorMessage TEXT,
+startInstanceErrorMessage TEXT,
+serviceInstanceErrorMessage TEXT,
+```
+
+There are also progress updates, which are periodically emitted from long-running tasks and forwarded to the frontend for display via pubsub. However, these messages are not database-backed.
+```
+OverallProgress
+DBProgress
+InstanceProgress
+DeployInstanceProgress
+Route53Progress
+StartInstanceProgress
+ServiceInstanceProgress
+```
