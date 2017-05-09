@@ -24,7 +24,6 @@ export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
   return local ? copyToTmpFile : pipeToRDS
 }
 
-
 export const defaultAwsCb = (err, data) => {
   if (err) console.log(err, err.stack)
   else console.log(data)

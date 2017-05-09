@@ -4,22 +4,33 @@ import sqlite3 from 'sqlite3'
 const createCommand = `
   CREATE TABLE pulls (
     id INTEGER PRIMARY KEY,
-    prId INTEGER, -- should match github
-    prName TEXT, -- should match github
-    sha TEXT, -- of most recent deploy
 
-    dbName TEXT, -- normalized to be valid for RDS, might entail truncation
-    dbState TEXT, -- starting|online|stopping|error
-    dbErrorMessage, -- set when dbState is "error"
+    -- properties of the instance
+    prId INTEGER, -- e.g., 2300
+    prName TEXT, -- e.g., features/hc-index
+    sha TEXT, -- (short) e.g., c38d1a9
+    dbName TEXT, -- prName, snake-cased so it's a valid MySQL table name
+    hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
+    instanceId TEXT, -- Opsworks ID of created instance
+    url TEXT, -- route53 url
 
-    hostName TEXT, -- (normalized to be valid for AWS)
-    instanceState TEXT, -- starting|online|stopping|offline (and when no row is found, instance is assumed offline)
-    instanceId TEXT, -- Opsworks ID
-
-    deployState TEXT, -- stopped|setting-up|deploying|created
-
+    -- all States are one of offline|starting|online|stopping|error. used in UI.
+    overallState TEXT,
+    dbState TEXT,
+    instanceState TEXT,
+    deployInstanceState TEXT,
     route53State TEXT,
-    url TEXT, -- url
+    startInstanceState TEXT,
+    serviceInstanceState TEXT,
+
+    -- error messages in case of error State
+    overallErrorMessage TEXT,
+    dbErrorMessage TEXT,
+    instanceErrorMessage TEXT,
+    deployInstanceErrorMessage TEXT,
+    route53ErrorMessage TEXT,
+    startInstanceErrorMessage TEXT,
+    serviceInstanceErrorMessage TEXT,
 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(prId),
