@@ -32,6 +32,8 @@ mv /usr/local/etc/nginx/picasso.conf mv /usr/local/etc/nginx/picasso.conf.backup
 # Useful tidbits
 
 ### Useful commands:
+* Deploy an update to the API server: `npm run deploy`
+* Tail logs on the API server: `tail -f ~/qa-instances-api/logs`
 * Reset local database: `npm run redb`
 * Print local database: `npm run printTable` and `npm run printTallTable`
 
