@@ -13,4 +13,4 @@ if [ ! -f $dbFilename ]; then
 fi
 
 # pipe viewer output is automatically routed to stderr
-eval "pv --timer --eta $dbFilename | gunzip | $pipeDataCmd $dbName"
+eval "pv --timer --eta --force $dbFilename | gunzip | $pipeDataCmd $dbName"
