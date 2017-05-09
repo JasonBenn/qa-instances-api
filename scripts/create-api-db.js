@@ -11,6 +11,7 @@ const createCommand = `
     sha TEXT, -- (short) e.g., c38d1a9
     dbName TEXT, -- prName, snake-cased so it's a valid MySQL table name
     hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
+    domainName TEXT, -- hostName + ".minervaproject.com"
     instanceId TEXT, -- Opsworks ID of created instance
     url TEXT, -- route53 url
 
