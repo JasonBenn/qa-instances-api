@@ -8,18 +8,26 @@ The Chrome extension is [here](https://github.com/minervaproject/qa-instances-ex
 # Local development
 
 ### First time:
-```
-Install local QA instance coordinator nginx config and /etc/hosts line with ./nginx/install-local (you may need to update the nginx path for your system)
-- You may also need to disable your seminar-local setup, which also conflicts with this setup. On my system, `mv /usr/local/etc/nginx/sites-enabled/picasso.conf /usr/local/etc/nginx/sites-enabled/picasso.conf.backup; sudo nginx -s reload` is sufficient to get Picasso out of the way. Better solutions would be greatly appreciated.
-```
+> Install local QA instance coordinator nginx config and /etc/hosts line with ./nginx/install-local (you may need to update the nginx path for your system)
+> - You may also need to disable your seminar-local setup, which also conflicts with this setup. On my system, `mv /usr/local/etc/nginx/sites-enabled/picasso.conf /usr/local/etc/nginx/sites-enabled/picasso.conf.backup; sudo nginx -s reload` is sufficient to get Picasso out of the way. Better solutions would be greatly appreciated.
 
 ### Every time:
 ```
 nvm use `cat .node-version`
 npm run start
 ```
+Also, set the `local` boolean in config/picasso.json to `true` when developing locally - this will mock out AWS API calls.
 
-Set the `local` boolean in config/picasso.json to `true` when developing locally - this will mock out AWS API calls.
+### To test that your local install is working:
+```
+https://qa-instance-coordinator-local.minervaproject.com
+```
+
+If you get a 404 or 500 error:
+```
+mv /usr/local/etc/nginx/picasso.conf mv /usr/local/etc/nginx/picasso.conf.backup
+```
+(Sorry. I don't know why they conflict yet.)
 
 # Useful tidbits
 
