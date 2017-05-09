@@ -3,9 +3,12 @@ import Promise from 'bluebird'
 import treeKill from 'tree-kill'
 import _ from 'underscore'
 
+const DEPLOY_ONLINE_STATES = ["online"]
+const DEPLOY_OFFLINE_STATES = ["stopped", "terminated"]
+const DEPLOY_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
+// Other AWS deployment states: booting|pending|rebooting|requested|running_setup|shutting_down|stopping|terminating
 
-const TERMINAL_STATES = ["connection_lost", "online", "setup_failed", "start_failed", "stop_failed", "stopped"]
-// all states: booting|connection_lost|online|pending|rebooting|requested|running_setup|setup_failed|shutting_down|start_failed|stop_failed|stopped|stopping|terminated|terminating
+const MAX_POLL_COUNT = 40
 const POLL_STATE_INTERVAL = 5000
 
 
@@ -100,27 +103,49 @@ export default class QaInstances {
     })
   }
 
-  pollInstanceState(prId, instanceId, ignoreFirstState = "", callCount = 0, currentStatus = "") {
-    console.log("qai: pollInstanceState");
-    callCount += 1
+  pollInstanceState({ prId, resolve, reject, uiType, instanceId, ignoreFirstState = "", pollCount = 0, status = "" }) {
+    console.log("qai: pollInstanceState for", uiType);
+    pollCount += 1
 
     this.aws.describeInstances(instanceId).then(data => {
-      const status = data.Instances[0].Status
+      const newStatus = data.Instances[0].Status
+      console.log('qai: pollInstanceState', newStatus);
+      const timedOut = pollCount === MAX_POLL_COUNT
 
-      if (status !== currentStatus) {
-        currentStatus = status
-        this.pubsub.publish(prId, { instanceState: status })
-      }
+      // Is this a state we're temporarily ignoring, like "offline" when we _just_ triggered a deploy? If so, recurse.
+      if (ignoreFirstState === status && !timedOut) {
+        setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, ignoreFirstState, pollCount, status }), POLL_STATE_INTERVAL)
 
-      if (ignoreFirstState === status) {
-        // If the state is something we want to ignore, like "online" when we're stopping, then proceed even though it's a terminal state.
-        setTimeout(this.pollInstanceState.bind(this, instanceId, ignoreFirstState, callCount, currentStatus), POLL_STATE_INTERVAL)
       } else {
-        const notDone = !TERMINAL_STATES.includes(currentStatus)
-        if (callCount === 40 && notDone)
-          this.pubsub.publish(prId, { instanceState: "timeout" })
-        if (notDone) {
-          setTimeout(this.pollInstanceState.bind(this, instanceId, null, callCount, currentStatus), POLL_STATE_INTERVAL)
+        // Are we online?
+        if (DEPLOY_ONLINE_STATES) {
+          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Online })
+          resolve()
+
+        // Are we offline?
+        } else if (DEPLOY_OFFLINE_STATES) {
+          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Offline })
+          resolve()
+
+        // Are we in an error state?
+        } else if (DEPLOY_ERROR_STATES) {
+          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: status })
+          reject()
+
+        // Have we timed out?
+        } else if (timedOut) {
+          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "timed out" })
+          reject()
+
+        // If none of the above, recurse.
+        } else {
+
+          // Also, if this is a new state, publish a progress update.
+          if (newStatus !== status) {
+            this.pubsub.publish(prId, { [uiType + "Progress"]: status })
+          }
+
+          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, newStatus }), POLL_STATE_INTERVAL)
         }
       }
     })
