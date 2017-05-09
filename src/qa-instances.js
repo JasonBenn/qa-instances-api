@@ -39,7 +39,7 @@ export default class QaInstances {
     }).then(() => {
 
       const dbName = underscoreCase(prName)
-      let deployInstancePromise = new Promise() // Never resolves, but will be reassigned soon.
+      startInstancePromise = new Promise() // Never resolves, but will be reassigned soon.
       let instanceId
 
       // createDB, updates dbState.
@@ -61,18 +61,18 @@ export default class QaInstances {
         this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId })
       })
 
-      // deployInstance, updates deployInstanceState.
+      // startInstance, updates startInstanceState.
       createInstancePromise.then(() => {
-        this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
-        deployInstancePromise = new Promise((resolve, reject) => {
-          this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
-            // What is the state this first time?
-            this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
+        this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
+        startInstancePromise = new Promise((resolve, reject) => {
+          this.aws.startInstance(instanceId).then(() => {
+            console.log("qai: startInstance callback args:", arguments)
+            this.pollInstanceState({ prId, resolve, reject, uiType: "startInstance", instanceId, ignoreFirstState: "offline" })
           })
         })
       })
 
-      Promise.all([dbPromise, deployInstancePromise]).then(() => {
+      Promise.all([dbPromise, startInstancePromise]).then(() => {
 
         // createRoute53Record, updates route53State.
         this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
@@ -82,17 +82,16 @@ export default class QaInstances {
           this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
         })
 
-        // startInstance, updates startInstanceState.
-        this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
-        const startInstancePromise = new Promise((resolve, reject) => {
-          this.aws.startInstance(instanceId).then(() => {
-            console.log("qai: startInstance callback args:", arguments)
-            // Shoot, what is its state going to be here?
-            this.pollInstanceState({ prId, resolve, reject, uiType: "startInstance", instanceId, ignoreFirstState: "offline" })
+        // deployInstance, updates deployInstanceState.
+        this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
+        const deployInstancePromise = new Promise((resolve, reject) => {
+          this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
+            // How do I keep up to date with a deployment?
+            this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
           })
         })
 
-        Promise.all([route53Promise, startInstancePromise]).then(() => {
+        Promise.all([route53Promise, deployInstancePromise]).then(() => {
 
           // serviceInstance, updates serviceInstanceState.
           this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
@@ -135,6 +134,8 @@ export default class QaInstances {
     this.pubsub.saveThenPublish(prId, { 
       overallState: States.Stopping,
       // These states don't make sense in the context of stopping, so set them Offline.
+      deployInstanceState: States.Offline,
+      deployInstanceErrorMessage: null,
       startInstanceState: States.Offline,
       startInstanceErrorMessage: null,
       serviceInstanceState: States.Offline,
