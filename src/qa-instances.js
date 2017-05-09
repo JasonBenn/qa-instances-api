@@ -1,4 +1,4 @@
-import { getHostName, underscoreCase, getPipeDataCmd } from './utils'
+import { getHostName, getDomainName, underscoreCase, getPipeDataCmd } from './utils'
 import { States } from './db'
 import Promise from 'bluebird'
 import treeKill from 'tree-kill'
@@ -39,7 +39,7 @@ export default class QaInstances {
     }).then(() => {
 
       const dbName = underscoreCase(prName)
-      startInstancePromise = new Promise() // Never resolves, but will be reassigned soon.
+      let startInstancePromise = new Promise(() => {}) // Never resolves, but will be reassigned soon.
       let instanceId
 
       // createDB, updates dbState.
@@ -107,6 +107,7 @@ export default class QaInstances {
           serviceInstancePromise.then(() => {
             this.pubsub.saveThenPublish(prId, { overallState: States.Online })
           })
+        })
       })
     })
   }
@@ -133,6 +134,8 @@ export default class QaInstances {
 
     this.pubsub.saveThenPublish(prId, { 
       overallState: States.Stopping,
+
+      overallErrorMessage: null,
       // These states don't make sense in the context of stopping, so set them Offline.
       deployInstanceState: States.Offline,
       deployInstanceErrorMessage: null,

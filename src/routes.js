@@ -6,7 +6,6 @@ import 'colors'
 
 export const routes = (app, db, aws, pubsub, qaInstances) => {  
   const defaultErrorHandler = (err, res, next) => {
-    console.log(err.bold.red);
     res.status(500).send(JSON.stringify({ error: err }))
     next(err)
   }

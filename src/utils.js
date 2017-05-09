@@ -31,7 +31,7 @@ export const checkForIllegalStateTransitions = (prId, data) => {
   // ELSE
     // resolve promise
 
-  return new Promise.resolve(true)
+  return Promise.resolve(true)
 }
 
 export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {

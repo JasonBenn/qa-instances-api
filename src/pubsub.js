@@ -38,7 +38,7 @@ export default class PubSub {
 
   saveThenPublish(prId, data) {
     return new Promise((resolve, reject) => {
-      this.checkForIllegalStateTransitions(prId, data).then(isLegal => {
+      checkForIllegalStateTransitions(prId, data).then(isLegal => {
 
         if (isLegal) {
           console.log('ps: saving and publishing', prId, data);
