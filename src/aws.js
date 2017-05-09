@@ -187,7 +187,7 @@ export default class AWS {
   }
 
   deleteRoute53Record(prId, domainName, instanceIp) {
-    console.log("aws: deleteRoute53Record");
+    console.log("aws: deleteRoute53Record", arguments);
     return this.changeRoute53Record({ domainName, instanceIp, action: "DELETE" })
   }
 
