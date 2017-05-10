@@ -7,7 +7,7 @@ import _ from 'underscore'
 const DEPLOY_ONLINE_STATES = ["online"]
 const DEPLOY_OFFLINE_STATES = ["stopped", "terminated"]
 const DEPLOY_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
-// Other AWS deployment states: booting|pending|rebooting|requested|running_setup|shutting_down|stopping|terminating
+// Other AWS deployment states: requested|booting|pending|rebooting|running_setup|shutting_down|stopping|terminating
 
 const MAX_POLL_COUNT = 40
 const POLL_STATE_INTERVAL = 5000
@@ -188,13 +188,13 @@ export default class QaInstances {
     })
   }
 
-  pollInstanceState({ prId, resolve, reject, uiType, instanceId, ignoreFirstState = "", pollCount = 0, status = "" }) {
+  pollInstanceState({ prId, resolve, reject, uiType, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
     console.log("qai: pollInstanceState for", uiType);
     pollCount += 1
 
     this.aws.describeInstances(instanceId).then(data => {
-      const newStatus = data.Instances[0].Status
-      console.log('qai: pollInstanceState', newStatus);
+      const status = data.Instances[0].Status
+      console.log('qai: pollInstanceState', status);
       const timedOut = pollCount === MAX_POLL_COUNT
 
       // Is this a state we're temporarily ignoring, like "offline" when we _just_ triggered a deploy? If so, recurse.
@@ -203,17 +203,17 @@ export default class QaInstances {
 
       } else {
         // Are we online?
-        if (DEPLOY_ONLINE_STATES) {
+        if (DEPLOY_ONLINE_STATES.includes(status)) {
           this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Online })
           resolve()
 
         // Are we offline?
-        } else if (DEPLOY_OFFLINE_STATES) {
+        } else if (DEPLOY_OFFLINE_STATES.includes(status)) {
           this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Offline })
           resolve()
 
         // Are we in an error state?
-        } else if (DEPLOY_ERROR_STATES) {
+        } else if (DEPLOY_ERROR_STATES.includes(status)) {
           this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: status })
           reject()
 
@@ -226,11 +226,11 @@ export default class QaInstances {
         } else {
 
           // Also, if this is a new state, publish a progress update.
-          if (newStatus !== status) {
+          if (status !== oldStatus) {
             this.pubsub.publish(prId, { [uiType + "Progress"]: status })
           }
 
-          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, newStatus }), POLL_STATE_INTERVAL)
+          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, status }), POLL_STATE_INTERVAL)
         }
       }
     })
