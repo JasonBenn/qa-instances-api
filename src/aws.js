@@ -163,7 +163,7 @@ export default class AWS {
 
   changeRoute53Record({ domainName, instanceIp, action }) {
     console.log("aws: changeRoute53Record");
-    const args = {
+    return this.route53.changeResourceRecordSets({
       ChangeBatch: {
         Changes: [{
           Action: action,
@@ -177,8 +177,7 @@ export default class AWS {
         Comment: "QA instance"
       },
       HostedZoneId: this.config.route53HostedZoneID
-    }
-    return this.route53.changeResourceRecordSets(args).promise()
+    }).promise()
   }
 
   createRoute53Record(prId, domainName, instanceIp) {
