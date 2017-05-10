@@ -113,13 +113,13 @@ export default class AWS {
         Name: "execute_recipes",
         Args: {
           recipes: [
-            "seminar::deploy_seminar_review",
+            "seminar::deploy_qa_instances",
           ]
         }
       },
       CustomJson: JSON.stringify({
         deploy: {
-          seminar_review: {
+          seminar_qa_instances: {
             "branch": "jb/qa-instances",  // Temporary.
             domain: domainName,
             seminar_url: "https://" + domainName,
@@ -143,14 +143,14 @@ export default class AWS {
         Args: {
           recipes: [
             "seminar::sanitize",
-            "seminar::service_seminar_review",
-            "seminar::singletons_seminar_review"
+            "seminar::service_qa_instances",
+            "seminar::singletons_qa_instances"
           ]
         }
       },
       CustomJson: JSON.stringify({
         deploy: {
-          seminar_review: {
+          seminar_qa_instances: {
             "branch": "jb/qa-instances",  // Temporary.
             domain: domainName,
             seminar_url: "https://" + domainName,
