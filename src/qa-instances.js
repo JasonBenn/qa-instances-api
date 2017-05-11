@@ -112,6 +112,7 @@ export default class QaInstances {
   }
 
   pollForPublicIp(instanceId) {
+    console.log("qai: pollForPublicIp")
     this.aws.describeInstance(instanceId).then(data => {
       const publicIp = data.Instances[0].PublicIp
       if (publicIp) {
@@ -194,7 +195,7 @@ export default class QaInstances {
   }
 
   pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
-    console.log("qai: pollInstanceState", pollCount, "status:", "oldStatus");
+    console.log("qai: pollInstanceState", pollCount, "status:", oldStatus);
     pollCount += 1
 
     this.aws.describeInstance(instanceId).then(data => {
