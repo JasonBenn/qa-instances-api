@@ -121,7 +121,7 @@ export default class QaInstances {
           this.pubsub.saveThenPublish(prId, { route53State: States.Online })
         })
       } else {
-        setTimeout(this.pollForPublicIp.bind(this, instanceId), POLL_STATE_INTERVAL)
+        setTimeout(this.pollForPublicIp.bind(this, prId, instanceId), POLL_STATE_INTERVAL)
       }
     })
   }
