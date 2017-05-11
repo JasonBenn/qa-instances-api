@@ -75,7 +75,7 @@ export default class QaInstances {
           })
         })
 
-        Promise.all([dbPromise, startInstancePromise]).then(() => {
+        startInstancePromise.then(() => {
 
           // deployInstance, updates deployInstanceState.
           this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
@@ -85,7 +85,7 @@ export default class QaInstances {
             })
           })
 
-          deployInstancePromise.then(() => {
+          Promise.all([dbPromise, deployInstancePromise]).then(() => {
 
             // serviceInstance, updates serviceInstanceState.
             this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
