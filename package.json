@@ -12,8 +12,7 @@
     "sshDB": "babel-node ./scripts/ssh-db.js",
     "testAWS": "babel-node --presets=node6 scripts/test-aws.js",
     "deploy": "ssh qa-instance-coordinator1.vpcstaging 'cd qa-instances-api; git pull; bash ./scripts/deploy.sh'",
-    "printTable": "sqlite3 -column -header db.sqlite 'select * from pulls'",
-    "printTallTable": "sqlite3 -line -header db.sqlite 'select * from pulls'"
+    "printTable": "sqlite3 -line -header db.sqlite 'select * from pulls'"
   },
   "repository": {
     "type": "git",
