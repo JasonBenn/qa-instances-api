@@ -25,13 +25,13 @@ const createCommand = `
     serviceInstanceState TEXT,
 
     -- error messages in case of error State
-    overallErrorMessage TEXT,
-    dbErrorMessage TEXT,
-    instanceErrorMessage TEXT,
-    deployInstanceErrorMessage TEXT,
-    route53ErrorMessage TEXT,
-    startInstanceErrorMessage TEXT,
-    serviceInstanceErrorMessage TEXT,
+    overallError TEXT,
+    dbError TEXT,
+    instanceError TEXT,
+    deployInstanceError TEXT,
+    route53Error TEXT,
+    startInstanceError TEXT,
+    serviceInstanceError TEXT,
 
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(prId),

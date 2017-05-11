@@ -85,13 +85,13 @@ serviceInstanceState TEXT,
 
 The last third are error messages in case of an `error` state above.
 ```
-overallErrorMessage TEXT,
-dbErrorMessage TEXT,
-instanceErrorMessage TEXT,
-deployInstanceErrorMessage TEXT,
-route53ErrorMessage TEXT,
-startInstanceErrorMessage TEXT,
-serviceInstanceErrorMessage TEXT,
+overallError TEXT,
+dbError TEXT,
+instanceError TEXT,
+deployInstanceError TEXT,
+route53Error TEXT,
+startInstanceError TEXT,
+serviceInstanceError TEXT,
 ```
 
 There are also progress updates, which are periodically emitted from long-running tasks and forwarded to the frontend for display via pubsub. However, these messages are not database-backed.

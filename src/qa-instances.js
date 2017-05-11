@@ -121,7 +121,7 @@ export default class QaInstances {
       this.pubsub.saveThenPublish(prId, { dbState: States.Online })
       resolve()
     } else {
-      this.pubsub.saveThenPublish(prId, { dbState: States.Error, dbErrorMessage: `exit code ${code}` })
+      this.pubsub.saveThenPublish(prId, { dbState: States.Error, dbError: `exit code ${code}` })
       reject()
     }
   }
@@ -138,28 +138,28 @@ export default class QaInstances {
     this.pubsub.saveThenPublish(prId, { 
       overallState: States.Stopping,
 
-      overallErrorMessage: null,
+      overallError: null,
       // These states don't make sense in the context of stopping, so set them Offline.
       deployInstanceState: States.Offline,
-      deployInstanceErrorMessage: null,
+      deployInstanceError: null,
       startInstanceState: States.Offline,
-      startInstanceErrorMessage: null,
+      startInstanceError: null,
       serviceInstanceState: States.Offline,
-      serviceInstanceErrorMessage: null
+      serviceInstanceError: null
     })
 
     this.db.get(prId).then(({ instanceId, domainName, instanceIp, dbName }) => {
 
       // deleteDB, updates dbState.
       const deleteDBPromise = this.aws.deleteDB(dbName).then(proc => {
-        this.pubsub.saveThenPublish(prId, { dbState: States.Stopping, dbErrorMessage: null })
+        this.pubsub.saveThenPublish(prId, { dbState: States.Stopping, dbError: null })
         proc.on('close', () => {
           this.pubsub.saveThenPublish(prId, { dbState: States.Offline, dbName: null })
         })
       })
 
       // stopInstance, updates instanceState.
-      this.pubsub.saveThenPublish(prId, { instanceState: States.Stopping, instanceErrorMessage: null })
+      this.pubsub.saveThenPublish(prId, { instanceState: States.Stopping, instanceError: null })
       const stopInstancePromise = new Promise((resolve, reject) => {
         this.aws.stopInstance(instanceId).then(() => {
           console.log("qai: stopInstance callback args:", arguments);
@@ -172,7 +172,7 @@ export default class QaInstances {
       })
 
       // deleteRoute53Record, updates route53State.
-      this.pubsub.saveThenPublish(prId, { route53State: States.Stopping, route53ErrorMessage: null })
+      this.pubsub.saveThenPublish(prId, { route53State: States.Stopping, route53Error: null })
       const route53Promise = this.aws.deleteRoute53Record(prId, domainName, instanceIp).then(() => {
         this.pubsub.saveThenPublish(prId, { route53State: States.Offline, url: null })
       })
