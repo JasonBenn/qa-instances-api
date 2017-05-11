@@ -9,7 +9,7 @@
     "tailLogs": "tail -f logs/*",
     "truncateLogs": "> logs/out.log; > logs/err.log",
     "redb": "babel-node ./scripts/create-api-db.js",
-    "ssh-db": "babel-node ./scripts/ssh-db.js",
+    "sshDB": "babel-node ./scripts/ssh-db.js",
     "deploy": "ssh qa-instance-coordinator1.vpcstaging 'cd qa-instances-api; git pull; bash ./scripts/deploy.sh'",
     "printTable": "sqlite3 -column -header db.sqlite 'select * from pulls'",
     "printTallTable": "sqlite3 -line -header db.sqlite 'select * from pulls'"
