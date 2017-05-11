@@ -14,7 +14,6 @@ const createCommand = `
     domainName TEXT, -- hostName + ".minervaproject.com"
     instanceId TEXT, -- Opsworks ID of created instance
     publicIp TEXT, -- IPv4 address
-    url TEXT, -- route53 url
 
     -- all States are one of offline|starting|online|stopping|error. used in UI.
     overallState TEXT,

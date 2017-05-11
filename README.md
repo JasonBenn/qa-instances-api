@@ -69,7 +69,7 @@ dbName TEXT, -- prName, snake-cased so it's a valid MySQL table name
 hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
 domainName TEXT, -- hostName + ".minervaproject.com"
 instanceId TEXT, -- Opsworks ID of created instance
-url TEXT, -- route53 url
+publicIp TEXT, -- IPv4 address
 ```
 
 Another third are states {offline|starting|online|stopping|error} that each map to one line of the UI.
