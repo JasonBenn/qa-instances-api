@@ -31,75 +31,78 @@ export default class QaInstances {
     const hostName = getHostName(prName)
     const domainName = getDomainName(hostName)
 
-    return this.pubsub.saveThenPublish({
-      prId: prId,
-      sha: sha,
-      prName: prName,
-      hostName: hostName,
-      domainName: domainName,
-      overallState: States.Starting
-    }).then(() => {
+    this.db.create({ prId }).then(() => {
 
-      const dbName = underscoreCase(prName)
-      let instanceId
-      this.runningProcesses[prId] = {}
+      return this.pubsub.saveThenPublish(prId, {
+        sha: sha,
+        prName: prName,
+        hostName: hostName,
+        domainName: domainName,
+        overallState: States.Starting
+      }).then(() => {
 
-      // createDB, updates dbState.
-      const dbPromise = new Promise((resolve, reject) => {
-        this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
+        const dbName = underscoreCase(prName)
+        let instanceId
+        this.runningProcesses[prId] = {}
 
-        this.aws.createDB(dbName).then(proc => {
-          this.runningProcesses[prId].createDB = proc
-          proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
-          this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
-          proc.on('close', this.createDBCallback)
-        })
-      })
+        // createDB, updates dbState.
+        const dbPromise = new Promise((resolve, reject) => {
+          this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
 
-      // createInstance, updates instanceState.
-      this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
-      const createInstancePromise = this.aws.createInstance(hostName).then(({ InstanceId }) => {
-        instanceId = InstanceId
-        this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
-      })
-
-      // startInstance, updates startInstanceState.
-      createInstancePromise.then(() => {
-        this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
-        const startInstancePromise = new Promise((resolve, reject) => {
-          this.aws.startInstance(instanceId).then(() => {
-            this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
-
-            // createRoute53Record, updates route53State.
-            this.pollForPublicIp(prId, instanceId, domainName)
+          this.aws.createDB(dbName).then(proc => {
+            this.runningProcesses[prId].createDB = proc
+            proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
+            this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
+            proc.on('close', this.createDBCallback)
           })
         })
 
-        startInstancePromise.then(() => {
+        // createInstance, updates instanceState.
+        this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
+        const createInstancePromise = this.aws.createInstance(hostName).then(({ InstanceId }) => {
+          instanceId = InstanceId
+          this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
+        })
 
-          // deployInstance, updates deployInstanceState.
-          this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
-          const deployInstancePromise = new Promise((resolve, reject) => {
-            this.aws.deployInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
-              this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
+        // startInstance, updates startInstanceState.
+        createInstancePromise.then(() => {
+          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
+          const startInstancePromise = new Promise((resolve, reject) => {
+            this.aws.startInstance(instanceId).then(() => {
+              this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
+
+              // createRoute53Record, updates route53State.
+              this.pollForPublicIp(prId, instanceId, domainName)
             })
           })
 
-          Promise.all([dbPromise, deployInstancePromise]).then(() => {
+          startInstancePromise.then(() => {
 
-            // serviceInstance, updates serviceInstanceState.
-            this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
-            const serviceInstancePromise = new Promise((resolve, reject) => {
-              this.aws.serviceInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
-                this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
+            // deployInstance, updates deployInstanceState.
+            this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
+            const deployInstancePromise = new Promise((resolve, reject) => {
+              this.aws.deployInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+                this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
               })
             })
 
-            // Finally, after serviceInstance, update overallState.
-            serviceInstancePromise.then(() => {
-              this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+            Promise.all([dbPromise, deployInstancePromise]).then(() => {
+
+              // serviceInstance, updates serviceInstanceState.
+              this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
+              const serviceInstancePromise = new Promise((resolve, reject) => {
+                this.aws.serviceInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+                  this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
+                })
+              })
+
+              // Finally, after serviceInstance, update overallState.
+              serviceInstancePromise.then(() => {
+                this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+              })
             })
           })
+
         })
 
       })
