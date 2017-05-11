@@ -68,8 +68,12 @@ export default class QaInstances {
         this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
         const startInstancePromise = new Promise((resolve, reject) => {
           this.aws.startInstance(instanceId).then(() => {
-            console.log("qai: startInstance callback args:", arguments)
-            this.pollInstanceState({ prId, resolve, reject, uiType: "startInstance", instanceId, ignoreFirstState: "offline" })
+            this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
+
+            // grab publicIp
+            this.aws.describeInstance(instanceId).then(data => {
+              this.db.update(prId, { publicIp: data.Instances[0].PublicIp })
+            })
           })
         })
 

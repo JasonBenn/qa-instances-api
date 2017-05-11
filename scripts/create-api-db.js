@@ -13,6 +13,7 @@ const createCommand = `
     hostName TEXT, -- prName, hyphen-cased so it's a valid AWS subdomain
     domainName TEXT, -- hostName + ".minervaproject.com"
     instanceId TEXT, -- Opsworks ID of created instance
+    publicIp TEXT, -- IPv4 address
     url TEXT, -- route53 url
 
     -- all States are one of offline|starting|online|stopping|error. used in UI.

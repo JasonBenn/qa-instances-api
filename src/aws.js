@@ -161,7 +161,7 @@ export default class AWS {
     }).promise()
   }
 
-  changeRoute53Record({ domainName, instanceIp, action }) {
+  changeRoute53Record({ domainName, publicIp, action }) {
     console.log("aws: changeRoute53Record");
     return this.route53.changeResourceRecordSets({
       ChangeBatch: {
@@ -169,7 +169,7 @@ export default class AWS {
           Action: action,
           ResourceRecordSet: {
             Name: domainName + ".",
-            ResourceRecords: [{ Value: instanceIp }],
+            ResourceRecords: [{ Value: publicIp }],
             TTL: 60,
             Type: "A"
           }
@@ -180,14 +180,14 @@ export default class AWS {
     }).promise()
   }
 
-  createRoute53Record(prId, domainName, instanceIp) {
+  createRoute53Record(domainName, publicIp) {
     console.log("aws: createRoute53Record");
-    return this.changeRoute53Record({ domainName, instanceIp, action: "UPSERT" })
+    return this.changeRoute53Record({ domainName, publicIp, action: "UPSERT" })
   }
 
-  deleteRoute53Record(prId, domainName, instanceIp) {
+  deleteRoute53Record(domainName, publicIp) {
     console.log("aws: deleteRoute53Record", arguments);
-    return this.changeRoute53Record({ domainName, instanceIp, action: "DELETE" })
+    return this.changeRoute53Record({ domainName, publicIp, action: "DELETE" })
   }
 
 }
