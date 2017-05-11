@@ -25,7 +25,6 @@ export default class QaInstances {
     this.runningProcesses = {}
   }
 
-  // TODO: check that states starting, online are triggered properly for the correct States.
   create(prId, sha, prName) {
     console.log("qai: create");
 
@@ -56,9 +55,6 @@ export default class QaInstances {
           proc.on('close', this.createDBCallback)
         })
       })
-
-      // const dbPromise = Promise.resolve()
-      // this.pubsub.saveThenPublish(prId, { dbState: States.Online, dbName: dbName })
 
       // createInstance, updates instanceState.
       this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
