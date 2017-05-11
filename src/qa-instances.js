@@ -9,7 +9,7 @@ const DEPLOY_OFFLINE_STATES = ["stopped", "terminated"]
 const DEPLOY_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
 // Other AWS deployment states: requested|booting|pending|rebooting|running_setup|shutting_down|stopping|terminating
 
-const MAX_POLL_COUNT = 40
+const MAX_POLL_COUNT = 60
 const POLL_STATE_INTERVAL = 5000
 
 
@@ -194,12 +194,12 @@ export default class QaInstances {
 
     this.aws.describeInstances(instanceId).then(data => {
       const status = data.Instances[0].Status
-      console.log('qai: pollInstanceState', status);
+      console.log('qai: pollInstanceState status:', status, 'count:', pollCount);
       const timedOut = pollCount === MAX_POLL_COUNT
 
       // Is this a state we're temporarily ignoring, like "offline" when we _just_ triggered a deploy? If so, recurse.
       if (ignoreFirstState === status && !timedOut) {
-        setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, ignoreFirstState, pollCount, status }), POLL_STATE_INTERVAL)
+        setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, ignoreFirstState, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
 
       } else {
         // Are we online?
@@ -227,10 +227,11 @@ export default class QaInstances {
 
           // Also, if this is a new state, publish a progress update.
           if (status !== oldStatus) {
+            pollCount = 0
             this.pubsub.publish(prId, { [uiType + "Progress"]: status })
           }
 
-          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, status }), POLL_STATE_INTERVAL)
+          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
         }
       }
     })
