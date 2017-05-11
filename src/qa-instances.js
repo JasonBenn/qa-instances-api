@@ -39,7 +39,6 @@ export default class QaInstances {
     }).then(() => {
 
       const dbName = underscoreCase(prName)
-      let startInstancePromise = new Promise(() => {}) // Never resolves, but will be reassigned soon.
       let instanceId
 
       // createDB, updates dbState.
@@ -67,51 +66,53 @@ export default class QaInstances {
       // startInstance, updates startInstanceState.
       createInstancePromise.then(() => {
         this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
-        startInstancePromise = new Promise((resolve, reject) => {
+        const startInstancePromise = new Promise((resolve, reject) => {
           this.aws.startInstance(instanceId).then(() => {
             console.log("qai: startInstance callback args:", arguments)
             this.pollInstanceState({ prId, resolve, reject, uiType: "startInstance", instanceId, ignoreFirstState: "offline" })
           })
         })
-      })
 
-      Promise.all([dbPromise, startInstancePromise]).then(() => {
+        Promise.all([dbPromise, startInstancePromise]).then(() => {
 
-        // createRoute53Record, updates route53State.
-        this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
-        const route53Promise = this.aws.createRoute53Record(prId, domainName, instanceIp).then(({ url }) => {
-          // TODO: check if URL is present in params.
-          console.log("qai: createRoute53Record callback args:", arguments)
-          this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
-        })
-
-        // deployInstance, updates deployInstanceState.
-        this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
-        const deployInstancePromise = new Promise((resolve, reject) => {
-          this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
-            // How do I keep up to date with a deployment?
-            this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
+          // createRoute53Record, updates route53State.
+          this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
+          const route53Promise = this.aws.createRoute53Record(prId, domainName, instanceIp).then(({ url }) => {
+            // TODO: check if URL is present in params.
+            console.log("qai: createRoute53Record callback args:", arguments)
+            this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
           })
-        })
 
-        Promise.all([route53Promise, deployInstancePromise]).then(() => {
-
-          // serviceInstance, updates serviceInstanceState.
-          this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
-          const serviceInstancePromise = new Promise((resolve, reject) => {
-            this.aws.serviceInstance({ instanceId, domainName, dbName }).then(() => {
-              console.log('qai: serviceInstance callback args:', arguments)
-              // TODO: how do I resolve this promise? Will I need http://docs.aws.amazon.com/cli/latest/reference/deploy/get-deployment.html
-              // to get info about a running deployment?
+          // deployInstance, updates deployInstanceState.
+          this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
+          const deployInstancePromise = new Promise((resolve, reject) => {
+            this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
+              // How do I keep up to date with a deployment?
+              this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
             })
           })
 
-          // Finally, after serviceInstance, update overallState.
-          serviceInstancePromise.then(() => {
-            this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+          Promise.all([route53Promise, deployInstancePromise]).then(() => {
+
+            // serviceInstance, updates serviceInstanceState.
+            this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
+            const serviceInstancePromise = new Promise((resolve, reject) => {
+              this.aws.serviceInstance({ instanceId, domainName, dbName }).then(() => {
+                console.log('qai: serviceInstance callback args:', arguments)
+                // TODO: how do I resolve this promise? Will I need http://docs.aws.amazon.com/cli/latest/reference/deploy/get-deployment.html
+                // to get info about a running deployment?
+              })
+            })
+
+            // Finally, after serviceInstance, update overallState.
+            serviceInstancePromise.then(() => {
+              this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+            })
           })
         })
+
       })
+
     })
   }
 
