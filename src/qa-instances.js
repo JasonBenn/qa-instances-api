@@ -42,20 +42,20 @@ export default class QaInstances {
       let startInstancePromise = new Promise(() => {}) // Never resolves, but will be reassigned soon.
       let instanceId
 
-      // // createDB, updates dbState.
-      // const dbPromise = new Promise((resolve, reject) => {
-      //   this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
+      // createDB, updates dbState.
+      const dbPromise = new Promise((resolve, reject) => {
+        this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
 
-      //   this.aws.createDB(dbName).then(proc => {
-      //     this.runningProcesses.createDB = proc
-      //     proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
-      //     this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
-      //     proc.on('close', this.createDBCallback)
-      //   })
-      // })
+        this.aws.createDB(dbName).then(proc => {
+          this.runningProcesses.createDB = proc
+          proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
+          this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
+          proc.on('close', this.createDBCallback)
+        })
+      })
 
-      const dbPromise = Promise.resolve()
-      this.pubsub.saveThenPublish(prId, { dbState: States.Online, dbName: dbName })
+      // const dbPromise = Promise.resolve()
+      // this.pubsub.saveThenPublish(prId, { dbState: States.Online, dbName: dbName })
 
       // createInstance, updates instanceState.
       this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
