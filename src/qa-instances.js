@@ -43,13 +43,14 @@ export default class QaInstances {
 
       const dbName = underscoreCase(prName)
       let instanceId
+      this.runningProcesses[prId] = {}
 
       // createDB, updates dbState.
       const dbPromise = new Promise((resolve, reject) => {
         this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
 
         this.aws.createDB(dbName).then(proc => {
-          this.runningProcesses.createDB = proc
+          this.runningProcesses[prId].createDB = proc
           proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
           this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
           proc.on('close', this.createDBCallback)
@@ -121,7 +122,7 @@ export default class QaInstances {
   }
 
   onCreateDBFinish(prId, resolve, reject, code) {
-    delete this.runningProcesses.createDB
+    delete this.runningProcesses[prId].createDB
     if (code === 0) {
       this.pubsub.saveThenPublish(prId, { dbState: States.Online })
       resolve()
@@ -135,7 +136,7 @@ export default class QaInstances {
     console.log("qai: delete");
 
     // Kill any running instance creation processes.
-    _.each(this.runningProcesses, (proc, key) => {
+    _.each(this.runningProcesses[prId], (proc, key) => {
       if (key === 'createDB') proc.removeListener('close', this.createDBCallback)
       treeKill(proc.pid)
     })
