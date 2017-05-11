@@ -31,9 +31,9 @@ export default class QaInstances {
     const hostName = getHostName(prName)
     const domainName = getDomainName(hostName)
 
-    this.db.create({ prId }).then(() => {
+    return this.db.create({ prId }).then(() => {
 
-      return this.pubsub.saveThenPublish(prId, {
+      this.pubsub.saveThenPublish(prId, {
         sha: sha,
         prName: prName,
         hostName: hostName,
