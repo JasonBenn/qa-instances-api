@@ -62,8 +62,7 @@ export default class AWS {
     })
   }
 
-  createInstance(prId, hostName) {
-    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#createInstance-property
+  createInstance(hostName) {
     console.log("aws: createInstance");
     return this.opsworks.createInstance({
       StackId: this.config.stackId,
@@ -81,22 +80,27 @@ export default class AWS {
   }
 
   startInstance(instanceId) {
-    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#startInstance-property
     console.log("aws: startInstance");
     return this.opsworks.startInstance({
       InstanceId: instanceId
     }).promise()
   }
 
-  describeInstances(instanceId) {
-    console.log("aws: describeInstances");
+  describeInstance(instanceId) {
+    console.log("aws: describeInstance");
     return this.opsworks.describeInstances({
       InstanceIds: [instanceId]
     }).promise()
   }
 
+  describeDeployment(deploymentId) {
+    console.log("aws: describeDeployment")
+    return this.opsworks.describeDeployments({
+      DeploymentIds: [deploymentId]
+    }).promise()
+  }
+
   stopInstance(instanceId) {
-    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/OpsWorks.html#stopInstance-property
     console.log("aws: stopInstance");
     return this.opsworks.stopInstance({
       InstanceId: instanceId

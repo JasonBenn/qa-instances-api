@@ -4,12 +4,15 @@ import Promise from 'bluebird'
 import treeKill from 'tree-kill'
 import _ from 'underscore'
 
-const DEPLOY_ONLINE_STATES = ["online"]
-const DEPLOY_OFFLINE_STATES = ["stopped", "terminated"]
-const DEPLOY_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
+const DEPLOY_INSTANCE_ONLINE_STATES = ["online"]
+const DEPLOY_INSTANCE_OFFLINE_STATES = ["stopped", "terminated"]
+const DEPLOY_INSTANCE_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
 // Other AWS deployment states: requested|booting|pending|rebooting|running_setup|shutting_down|stopping|terminating
+const DEPLOYMENT_ONLINE = "successful"
+const DEPLOYMENT_ERROR = "failed"
 
-const MAX_POLL_COUNT = 120  // 10 minutes
+const MAX_POLL_INSTANCE_COUNT = 120  // 10 minutes
+const MAX_POLL_DEPLOYMENT_COUNT = 120  // 10 minutes
 const POLL_STATE_INTERVAL = 5000
 
 
@@ -58,7 +61,7 @@ export default class QaInstances {
 
       // createInstance, updates instanceState.
       this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
-      const createInstancePromise = this.aws.createInstance(prId, hostName).then(({ InstanceId }) => {
+      const createInstancePromise = this.aws.createInstance(hostName).then(({ InstanceId }) => {
         instanceId = InstanceId
         this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId })
       })
@@ -81,18 +84,15 @@ export default class QaInstances {
 
           // createRoute53Record, updates route53State.
           this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
-          const route53Promise = this.aws.createRoute53Record(prId, domainName, instanceIp).then(({ url }) => {
-            // TODO: check if URL is present in params.
-            console.log("qai: createRoute53Record callback args:", arguments)
+          const route53Promise = this.aws.createRoute53Record(domainName, publicIp).then(({ url }) => {
             this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
           })
 
           // deployInstance, updates deployInstanceState.
           this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
           const deployInstancePromise = new Promise((resolve, reject) => {
-            this.aws.deployInstance({ instanceId, domainName, dbName }).then(() => {
-              // How do I keep up to date with a deployment?
-              this.pollInstanceState({ prId, resolve, reject, uiType: "deployInstance", instanceId, ignoreFirstState: "offline" })
+            this.aws.deployInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+              this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
             })
           })
 
@@ -101,10 +101,8 @@ export default class QaInstances {
             // serviceInstance, updates serviceInstanceState.
             this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
             const serviceInstancePromise = new Promise((resolve, reject) => {
-              this.aws.serviceInstance({ instanceId, domainName, dbName }).then(() => {
-                console.log('qai: serviceInstance callback args:', arguments)
-                // TODO: how do I resolve this promise? Will I need http://docs.aws.amazon.com/cli/latest/reference/deploy/get-deployment.html
-                // to get info about a running deployment?
+              this.aws.serviceInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+                this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
               })
             })
 
@@ -153,7 +151,7 @@ export default class QaInstances {
       serviceInstanceError: null
     })
 
-    this.db.get(prId).then(({ instanceId, domainName, instanceIp, dbName }) => {
+    this.db.get(prId).then(({ instanceId, domainName, publicIp, dbName }) => {
 
       // deleteDB, updates dbState.
       const deleteDBPromise = this.aws.deleteDB(dbName).then(proc => {
@@ -178,7 +176,7 @@ export default class QaInstances {
 
       // deleteRoute53Record, updates route53State.
       this.pubsub.saveThenPublish(prId, { route53State: States.Stopping, route53Error: null })
-      const route53Promise = this.aws.deleteRoute53Record(prId, domainName, instanceIp).then(() => {
+      const route53Promise = this.aws.deleteRoute53Record(domainName, publicIp).then(() => {
         this.pubsub.saveThenPublish(prId, { route53State: States.Offline, url: null })
       })
 
@@ -193,14 +191,13 @@ export default class QaInstances {
     })
   }
 
-  pollInstanceState({ prId, resolve, reject, uiType, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
+  pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
     console.log("qai: pollInstanceState for", uiType);
     pollCount += 1
 
-    this.aws.describeInstances(instanceId).then(data => {
+    this.aws.describeInstance(instanceId).then(data => {
       const status = data.Instances[0].Status
-      console.log('qai: pollInstanceState status:', status, 'count:', pollCount);
-      const timedOut = pollCount === MAX_POLL_COUNT
+      const timedOut = pollCount === MAX_POLL_INSTANCE_COUNT
 
       // Is this a state we're temporarily ignoring, like "offline" when we _just_ triggered a deploy? If so, recurse.
       if (ignoreFirstState === status && !timedOut) {
@@ -208,23 +205,23 @@ export default class QaInstances {
 
       } else {
         // Are we online?
-        if (DEPLOY_ONLINE_STATES.includes(status)) {
-          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Online })
+        if (DEPLOY_INSTANCE_ONLINE_STATES.includes(status)) {
+          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Online })
           resolve()
 
         // Are we offline?
-        } else if (DEPLOY_OFFLINE_STATES.includes(status)) {
-          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Offline })
+        } else if (DEPLOY_INSTANCE_OFFLINE_STATES.includes(status)) {
+          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Offline })
           resolve()
 
         // Are we in an error state?
-        } else if (DEPLOY_ERROR_STATES.includes(status)) {
-          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: status })
+        } else if (DEPLOY_INSTANCE_ERROR_STATES.includes(status)) {
+          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Error, startInstanceError: status })
           reject()
 
         // Have we timed out?
         } else if (timedOut) {
-          this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "timed out" })
+          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Error, startInstanceError: "timed out" })
           reject()
 
         // If none of the above, recurse.
@@ -233,12 +230,44 @@ export default class QaInstances {
           // Also, if this is a new state, publish a progress update.
           if (status !== oldStatus) {
             pollCount = 0
-            this.pubsub.publish(prId, { [uiType + "Progress"]: status })
+            this.pubsub.publish(prId, { startInstanceProgress: status })
           }
 
-          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
+          setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, instanceId, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
         }
       }
+    })
+
+  }
+
+  pollDeploymentState({ prId, resolve, reject, uiType, deploymentId, pollCount = 0 }) {
+    console.log("qai: pollDeploymentState for", uiType);
+    pollCount += 1
+
+    this.aws.describeDeployment(deploymentId).then(data => {
+      const status = data.Deployments[0].Status
+      const timedOut = pollCount === MAX_POLL_DEPLOYMENT_COUNT
+
+      // Are we online?
+      if (status === DEPLOYMENT_ONLINE) {
+        this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Online })
+        resolve()
+
+      // Are we in an error state?
+      } else if (status === DEPLOYMENT_ERROR) {
+        this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "recipe failed" })
+        reject()
+
+      // Have we timed out?
+      } else if (timedOut) {
+        this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "timed out" })
+        reject()
+
+      // If none of the above, recurse.
+      } else {
+        setTimeout(this.pollDeploymentState.bind(this, { prId, resolve, reject, uiType, deploymentId, pollCount }), POLL_STATE_INTERVAL)
+      }
+
     })
 
   }
