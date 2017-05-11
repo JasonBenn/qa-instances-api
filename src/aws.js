@@ -87,14 +87,12 @@ export default class AWS {
   }
 
   describeInstance(instanceId) {
-    console.log("aws: describeInstance");
     return this.opsworks.describeInstances({
       InstanceIds: [instanceId]
     }).promise()
   }
 
   describeDeployment(deploymentId) {
-    console.log("aws: describeDeployment")
     return this.opsworks.describeDeployments({
       DeploymentIds: [deploymentId]
     }).promise()

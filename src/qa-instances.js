@@ -75,18 +75,20 @@ export default class QaInstances {
 
             // grab publicIp
             this.aws.describeInstance(instanceId).then(data => {
-              this.db.update(prId, { publicIp: data.Instances[0].PublicIp })
+              const publicIp = data.Instances[0].PublicIp
+              this.db.update(prId, { publicIp: publicIp })
+
+              // createRoute53Record, updates route53State.
+              this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
+              this.aws.createRoute53Record(domainName, publicIp).then(() => {
+                this.pubsub.saveThenPublish(prId, { route53State: States.Online })
+              })
+
             })
           })
         })
 
         Promise.all([dbPromise, startInstancePromise]).then(() => {
-
-          // createRoute53Record, updates route53State.
-          this.pubsub.saveThenPublish(prId, { route53State: States.Starting })
-          const route53Promise = this.aws.createRoute53Record(domainName, publicIp).then(({ url }) => {
-            this.pubsub.saveThenPublish(prId, { route53State: States.Online, url })
-          })
 
           // deployInstance, updates deployInstanceState.
           this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
@@ -96,7 +98,7 @@ export default class QaInstances {
             })
           })
 
-          Promise.all([route53Promise, deployInstancePromise]).then(() => {
+          deployInstancePromise.then(() => {
 
             // serviceInstance, updates serviceInstanceState.
             this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
@@ -142,7 +144,7 @@ export default class QaInstances {
       overallState: States.Stopping,
 
       overallError: null,
-      // These states don't make sense in the context of stopping, so set them Offline.
+      // These states don't make sense in the context of stopping, so reset them.
       deployInstanceState: States.Offline,
       deployInstanceError: null,
       startInstanceState: States.Offline,
@@ -165,11 +167,6 @@ export default class QaInstances {
       this.pubsub.saveThenPublish(prId, { instanceState: States.Stopping, instanceError: null })
       const stopInstancePromise = new Promise((resolve, reject) => {
         this.aws.stopInstance(instanceId).then(() => {
-          console.log("qai: stopInstance callback args:", arguments);
-          // Shoot, what is its state going to be here?
-          // DANG, that's confusing. Instance State is apparently "online" when it's created - but "online" really means it's running. DAMN DAMN DAMN. I want "online" to mean running, which only happens after serviceInstance.
-          // instanceState: Online could correspond to "Created". deployState: "online" could correspond to Deployed. serviceInstance: "online" could correspond to running. overallState: "online" could correspond to "running".
-          // TODO: Stopping view: it really only makes sense to display state of overallState, dbState, instanceState, route53State.
           this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "online" })
         })
       })
@@ -177,7 +174,7 @@ export default class QaInstances {
       // deleteRoute53Record, updates route53State.
       this.pubsub.saveThenPublish(prId, { route53State: States.Stopping, route53Error: null })
       const route53Promise = this.aws.deleteRoute53Record(domainName, publicIp).then(() => {
-        this.pubsub.saveThenPublish(prId, { route53State: States.Offline, url: null })
+        this.pubsub.saveThenPublish(prId, { route53State: States.Offline, publicIp: null })
       })
 
       Promise.all([deleteDBPromise, stopInstancePromise, route53Promise]).then(() => {
