@@ -1,9 +1,11 @@
+DEFAULT_NGINX_DIR=/usr/local/etc/nginx
 DEFAULT_NGINX_SSL_DIR=/etc/nginx/ssl
 mkdir -p $DEFAULT_NGINX_SSL_DIR
 
 # Copy nginx config to sites-enabled
-DEFAULT_NGINX_DIR=/usr/local/etc/nginx/
-cp `pwd`/nginx/qa-api.conf $DEFAULT_NGINX_DIR/sites-enabled/
+
+[ ! -d $DEFAULT_NGINX_DIR ] && echo 'Default nginx directory (/usr/local/etc/nginx) not found! Aborting.' && exit 1
+cp `pwd`/nginx/local.conf $DEFAULT_NGINX_DIR/sites-enabled/
 
 # Copy SSL files from another staging machine
 scp -i ~/.ssh/staging.pem seminar1.vpcstaging:/etc/nginx/ssl/star.minervaproject.com.chained.crt $DEFAULT_NGINX_SSL_DIR
