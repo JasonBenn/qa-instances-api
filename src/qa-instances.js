@@ -9,7 +9,7 @@ const DEPLOY_OFFLINE_STATES = ["stopped", "terminated"]
 const DEPLOY_ERROR_STATES = ["connection_lost", "setup_failed", "start_failed", "stop_failed"]
 // Other AWS deployment states: requested|booting|pending|rebooting|running_setup|shutting_down|stopping|terminating
 
-const MAX_POLL_COUNT = 60
+const MAX_POLL_COUNT = 120  // 10 minutes
 const POLL_STATE_INTERVAL = 5000
 
 
@@ -167,7 +167,7 @@ export default class QaInstances {
           // DANG, that's confusing. Instance State is apparently "online" when it's created - but "online" really means it's running. DAMN DAMN DAMN. I want "online" to mean running, which only happens after serviceInstance.
           // instanceState: Online could correspond to "Created". deployState: "online" could correspond to Deployed. serviceInstance: "online" could correspond to running. overallState: "online" could correspond to "running".
           // TODO: Stopping view: it really only makes sense to display state of overallState, dbState, instanceState, route53State.
-          this.pollInstanceState({ prId, resolve, reject, uiType: "instanceState", instanceId, ignoreFirstState: "online" })
+          this.pollInstanceState({ prId, resolve, reject, uiType: "instance", instanceId, ignoreFirstState: "online" })
         })
       })
 
