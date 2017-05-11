@@ -75,7 +75,7 @@ export default class QaInstances {
             this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
 
             // createRoute53Record, updates route53State.
-            this.pollForPublicIp(prId, instanceId)
+            this.pollForPublicIp(prId, instanceId, domainName)
           })
         })
 
@@ -111,9 +111,9 @@ export default class QaInstances {
     })
   }
 
-  pollForPublicIp(prId, instanceId) {
+  pollForPublicIp(prId, instanceId, domainName) {
+    console.log("qai: pollForPublicIp")
     this.aws.describeInstance(instanceId).then(data => {
-      console.log("qai: pollForPublicIp", data)
       const publicIp = data.Instances[0].PublicIp
       if (publicIp) {
         this.pubsub.saveThenPublish(prId, { route53State: States.Starting, publicIp: publicIp })
@@ -121,7 +121,7 @@ export default class QaInstances {
           this.pubsub.saveThenPublish(prId, { route53State: States.Online })
         })
       } else {
-        setTimeout(this.pollForPublicIp.bind(this, prId, instanceId), POLL_STATE_INTERVAL)
+        setTimeout(this.pollForPublicIp.bind(this, prId, instanceId, domainName), POLL_STATE_INTERVAL)
       }
     })
   }
