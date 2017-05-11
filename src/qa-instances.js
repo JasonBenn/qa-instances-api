@@ -63,7 +63,7 @@ export default class QaInstances {
       this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
       const createInstancePromise = this.aws.createInstance(hostName).then(({ InstanceId }) => {
         instanceId = InstanceId
-        this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId })
+        this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
       })
 
       // startInstance, updates startInstanceState.
@@ -170,7 +170,7 @@ export default class QaInstances {
           // DANG, that's confusing. Instance State is apparently "online" when it's created - but "online" really means it's running. DAMN DAMN DAMN. I want "online" to mean running, which only happens after serviceInstance.
           // instanceState: Online could correspond to "Created". deployState: "online" could correspond to Deployed. serviceInstance: "online" could correspond to running. overallState: "online" could correspond to "running".
           // TODO: Stopping view: it really only makes sense to display state of overallState, dbState, instanceState, route53State.
-          this.pollInstanceState({ prId, resolve, reject, uiType: "instance", instanceId, ignoreFirstState: "online" })
+          this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "online" })
         })
       })
 
@@ -192,7 +192,7 @@ export default class QaInstances {
   }
 
   pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
-    console.log("qai: pollInstanceState for", uiType);
+    console.log("qai: pollInstanceState");
     pollCount += 1
 
     this.aws.describeInstance(instanceId).then(data => {
@@ -201,7 +201,7 @@ export default class QaInstances {
 
       // Is this a state we're temporarily ignoring, like "offline" when we _just_ triggered a deploy? If so, recurse.
       if (ignoreFirstState === status && !timedOut) {
-        setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, uiType, instanceId, ignoreFirstState, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
+        setTimeout(this.pollInstanceState.bind(this, { prId, resolve, reject, instanceId, ignoreFirstState, pollCount, oldStatus: status }), POLL_STATE_INTERVAL)
 
       } else {
         // Are we online?
