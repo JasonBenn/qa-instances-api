@@ -128,7 +128,7 @@ export default class QaInstances {
       this.pubsub.saveThenPublish(prId, { dbState: States.Online })
       resolve()
     } else {
-      this.pubsub.saveThenPublish(prId, { dbState: States.Error, dbError: `exit code ${code}` })
+      this.pubsub.saveThenPublish(prId, { overallState: States.Error, dbState: States.Error, dbError: `exit code ${code}` })
       reject()
     }
   }
@@ -215,12 +215,12 @@ export default class QaInstances {
 
         // Are we in an error state?
         } else if (DEPLOY_INSTANCE_ERROR_STATES.includes(status)) {
-          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Error, startInstanceError: status })
+          this.pubsub.saveThenPublish(prId, { overallState: States.Error, startInstanceState: States.Error, startInstanceError: status })
           reject()
 
         // Have we timed out?
         } else if (timedOut) {
-          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Error, startInstanceError: "timed out" })
+          this.pubsub.saveThenPublish(prId, { overallState: States.Error, startInstanceState: States.Error, startInstanceError: "timed out" })
           reject()
 
         // If none of the above, recurse.
@@ -254,12 +254,12 @@ export default class QaInstances {
 
       // Are we in an error state?
       } else if (status === DEPLOYMENT_ERROR) {
-        this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "recipe failed" })
+        this.pubsub.saveThenPublish(prId, { overallState: States.Error, [uiType + "State"]: States.Error, [uiType + "Error"]: "recipe failed" })
         reject()
 
       // Have we timed out?
       } else if (timedOut) {
-        this.pubsub.saveThenPublish(prId, { [uiType + "State"]: States.Error, [uiType + "Error"]: "timed out" })
+        this.pubsub.saveThenPublish(prId, { overallState: States.Error, [uiType + "State"]: States.Error, [uiType + "Error"]: "timed out" })
         reject()
 
       // If none of the above, recurse.
