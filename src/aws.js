@@ -20,12 +20,13 @@ export default class AWS {
     const aws = require('aws-sdk-mock')
     const defaultCb = (responseData = {}) => (params, cb) => cb(null, responseData)
     aws.mock('OpsWorks', 'createInstance', defaultCb({ InstanceId: 1 }))
-    aws.mock('OpsWorks', 'deleteInstance', defaultCb())
-    aws.mock('OpsWorks', 'startInstance', defaultCb())
-    aws.mock('OpsWorks', 'describeInstances', defaultCb())
-    aws.mock('OpsWorks', 'stopInstance', defaultCb())
-    aws.mock('OpsWorks', 'createDeployment', defaultCb())
-    aws.mock('Route53', 'changeResourceRecordSets', defaultCb())
+    aws.mock('OpsWorks', 'deleteInstance', defaultCb({}))
+    aws.mock('OpsWorks', 'startInstance', defaultCb({}))
+    aws.mock('OpsWorks', 'describeInstances', defaultCb({ Instances: [{ Status: 'online', PublicIp: '1.1.1.1' }] }))
+    aws.mock('OpsWorks', 'describeDeployments', defaultCb({ Deployments: [{ Status: 'successful' }] }))
+    aws.mock('OpsWorks', 'stopInstance', defaultCb({}))
+    aws.mock('OpsWorks', 'createDeployment', defaultCb({ DeploymentId: '000x0xxx000' }))
+    aws.mock('Route53', 'changeResourceRecordSets', defaultCb({}))
   }
 
   createDB(dbName) {
