@@ -52,7 +52,7 @@ export default class QaInstances {
           this.startInstance({ prId, instanceId, domainName }).then(() => {
             this.pollForIpThenCreateRoute53Record({ prId, instanceId, domainName })
 
-            const deployInstancePromise = this.deployInstance({ instanceId, domainName, dbName, prName })
+            const deployInstancePromise = this.deployInstance({ prId, instanceId, domainName, dbName, prName })
 
             Promise.all([dbPromise, deployInstancePromise]).then(() => {
               this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
@@ -112,12 +112,12 @@ export default class QaInstances {
     })
   }
 
-  deployInstance({ instanceId, domainName, dbName, prName }) {
+  deployInstance({ prId, instanceId, domainName, dbName, prName }) {
     // deployInstance, updates deployInstanceState.
-    console.log("qai: deployInstance", { instanceId, domainName, dbName, prName })
+    console.log("qai: deployInstance", { prId, instanceId, domainName, dbName, prName })
     this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
     return new Promise((resolve, reject) => {
-      this.aws.deployInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
+      this.aws.deployInstance({ prId, instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
         this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
         // getAndTailOpsworksLog(prId, hostName, uiType)  ?
       })
@@ -139,7 +139,7 @@ export default class QaInstances {
     this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
     console.log("qai: redeploy", prId)
     this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
-      this.deployInstance({ instanceId, domainName, dbName, prName }).then(() => {
+      this.deployInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
         this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
           this.pubsub.saveThenPublish(prId, { overallState: States.Online })
         })
