@@ -2,5 +2,5 @@ node_modules
 db.sqlite
 npm-debug.log
 dist
-config/*
+config
 logs/*.log
