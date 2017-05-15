@@ -105,7 +105,7 @@ export default class AWS {
     }).promise()
   }
 
-  deployInstance({ instanceId, domainName, dbName }) {
+  deployInstance({ instanceId, domainName, dbName, prName }) {
     // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
     console.log("aws: deployInstance");
     return this.opsworks.createDeployment({
@@ -122,8 +122,8 @@ export default class AWS {
       },
       CustomJson: JSON.stringify({
         deploy: {
-          seminar_qa_instances: {
-            "branch": "jb/qa-instances",  // Temporary.
+          "seminar-qa-instances": {
+            "branch": prName,
             domain: domainName,
             seminar_url: "https://" + domainName,
             database: { db: dbName }
@@ -134,7 +134,7 @@ export default class AWS {
     }).promise()
   }
 
-  serviceInstance({ instanceId, domainName, dbName }) {
+  serviceInstance({ instanceId, domainName, dbName, prName }) {
     // This is part 2 of the deploy step. These recipes require that a database is ready.
     console.log("aws: startInstanceServices");
     return this.opsworks.createDeployment({
@@ -153,8 +153,8 @@ export default class AWS {
       },
       CustomJson: JSON.stringify({
         deploy: {
-          seminar_qa_instances: {
-            "branch": "jb/qa-instances",  // Temporary.
+          "seminar-qa-instances": {
+            "branch": prName,
             domain: domainName,
             seminar_url: "https://" + domainName,
             database: { db: dbName }

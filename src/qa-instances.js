@@ -81,7 +81,7 @@ export default class QaInstances {
             // deployInstance, updates deployInstanceState.
             this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
             const deployInstancePromise = new Promise((resolve, reject) => {
-              this.aws.deployInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+              this.aws.deployInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
                 this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
               })
             })
@@ -91,7 +91,7 @@ export default class QaInstances {
               // serviceInstance, updates serviceInstanceState.
               this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
               const serviceInstancePromise = new Promise((resolve, reject) => {
-                this.aws.serviceInstance({ instanceId, domainName, dbName }).then(({ DeploymentId }) => {
+                this.aws.serviceInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
                   this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
                 })
               })
