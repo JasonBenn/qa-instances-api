@@ -18,10 +18,32 @@ readJSON('./config/picasso.json').then(config => {
   // aws.stopInstance("b6352f7d-8891-45b1-94cf-8147fd782f43").then(data => console.log(data))
   // aws.createRoute53Record(domainName, publicIp).then(data => console.log(data))
   // aws.deleteRoute53Record(domainName, publicIp).then(data => console.log(data))
+
   // aws.deployInstance({ instanceId, domainName, dbName }).then(({DeploymentId}) => {
+  // aws.serviceInstance({ instanceId, domainName, dbName }).then(({DeploymentId}) => {
   //   aws.describeDeployment(DeploymentId).then(data => {
   //     console.log(data)
   //     console.log(data.Deployments[0].Status)
   //   })
   // })
+
+  // aws.tailOpsworksLog(hostName).then(proc => {
+  //   proc.stdout.on('data', progressUpdate => console.log({ serviceInstanceProgress: progressUpdate.trim() }))
+  //   proc.on('close', () => {
+  //     if (code === 0) {
+  //       this.pubsub.saveThenPublish(prId, { dbState: States.Online })
+  //       resolve()
+  //     } else {
+  //       this.pubsub.saveThenPublish(prId, { overallState: States.Error, dbState: States.Error, dbError: `exit code ${code}` })
+  //       reject()
+  //     }
+  //   })
+  //   // proc.stdout.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
+  // })
+
+  // aws.getOpenOpsworksLogFilename(hostName).then(openOpsworksLogFilename => {})
+  // aws.getOpenOpsworksLogFilename(hostName).then(output => {
+  //   console.log(output)
+  // })
+
 })
