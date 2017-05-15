@@ -1,4 +1,4 @@
-import { execFile } from 'child_process'
+import { exec, spawn, execFile } from 'child_process'
 import path from 'path'
 import aws from 'aws-sdk'
 import Promise from 'bluebird'
@@ -46,6 +46,19 @@ export default class AWS {
 
       resolve(proc)
     })
+  }
+
+  getOpsworksProcess(hostName) {
+    console.log("aws: getOpenOpsworksLogFilename", hostName)
+    const command = `ssh ${hostName}.vpcstaging 'ps aux | grep tee | grep opsworks'`
+    const execPromise = Promise.promisify(exec)
+    return execPromise(command)  // works because first two args to exec callback are (err, stdout)
+  }
+
+  tailOpsworksLog(hostName, filename) {
+    const args =  [`${hostName}.vpcstaging`, `sudo tail -f ${filename}`]
+    console.log("aws: tailOpsworksLog", args)
+    return spawn("ssh", args)
   }
 
   deleteDB(dbName) {
