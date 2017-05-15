@@ -19,7 +19,7 @@ export default class AWS {
   mockAws() {
     const aws = require('aws-sdk-mock')
     const defaultCb = (responseData = {}) => (params, cb) => cb(null, responseData)
-    aws.mock('OpsWorks', 'createInstance', defaultCb({ InstanceId: 1 }))
+    aws.mock('OpsWorks', 'createInstance', defaultCb({ InstanceId: "1" }))
     aws.mock('OpsWorks', 'deleteInstance', defaultCb({}))
     aws.mock('OpsWorks', 'startInstance', defaultCb({}))
     aws.mock('OpsWorks', 'describeInstances', defaultCb({ Instances: [{ Status: 'online', PublicIp: '1.1.1.1' }] }))
@@ -49,7 +49,7 @@ export default class AWS {
   }
 
   deleteDB(dbName) {
-    console.log("aws: deleteDB");
+    console.log("aws: deleteDB", dbName);
     return new Promise((resolve, reject) => {
       const proc = execFile(process.cwd() + "/scripts/destroy-qa-db.sh", null, {
         env: {
@@ -63,7 +63,7 @@ export default class AWS {
   }
 
   createInstance(hostName) {
-    console.log("aws: createInstance");
+    console.log("aws: createInstance", hostName);
     return this.opsworks.createInstance({
       StackId: this.config.stackId,
       LayerIds: [this.config.layerId],
@@ -73,14 +73,14 @@ export default class AWS {
   }
 
   deleteInstance(instanceId) {
-    console.log("aws: deleteInstance");
+    console.log("aws: deleteInstance", instanceId);
     return this.opsworks.deleteInstance({
       InstanceId: instanceId
     }).promise()
   }
 
   startInstance(instanceId) {
-    console.log("aws: startInstance");
+    console.log("aws: startInstance", instanceId);
     return this.opsworks.startInstance({
       InstanceId: instanceId
     }).promise()
@@ -99,7 +99,7 @@ export default class AWS {
   }
 
   stopInstance(instanceId) {
-    console.log("aws: stopInstance");
+    console.log("aws: stopInstance", instanceId);
     return this.opsworks.stopInstance({
       InstanceId: instanceId
     }).promise()
@@ -107,7 +107,7 @@ export default class AWS {
 
   deployInstance({ instanceId, domainName, dbName, prName }) {
     // This is part 1 of the deploy step. This recipe runs in parallel to the database being cloned.
-    console.log("aws: deployInstance");
+    console.log("aws: deployInstance", { instanceId, domainName, dbName, prName });
     return this.opsworks.createDeployment({
       StackId: this.config.stackId,
       AppId: this.config.appId,
@@ -136,7 +136,7 @@ export default class AWS {
 
   serviceInstance({ instanceId, domainName, dbName, prName }) {
     // This is part 2 of the deploy step. These recipes require that a database is ready.
-    console.log("aws: startInstanceServices");
+    console.log("aws: startInstanceServices", { instanceId, domainName, dbName, prName });
     return this.opsworks.createDeployment({
       StackId: this.config.stackId,
       AppId: this.config.appId,
@@ -165,7 +165,7 @@ export default class AWS {
   }
 
   changeRoute53Record({ domainName, publicIp, action }) {
-    console.log("aws: changeRoute53Record");
+    console.log("aws: changeRoute53Record", { domainName, publicIp, action });
     return this.route53.changeResourceRecordSets({
       ChangeBatch: {
         Changes: [{
@@ -184,12 +184,12 @@ export default class AWS {
   }
 
   createRoute53Record(domainName, publicIp) {
-    console.log("aws: createRoute53Record");
+    console.log("aws: createRoute53Record", domainName, publicIp);
     return this.changeRoute53Record({ domainName, publicIp, action: "UPSERT" })
   }
 
   deleteRoute53Record(domainName, publicIp) {
-    console.log("aws: deleteRoute53Record", arguments);
+    console.log("aws: deleteRoute53Record", domainName, publicIp);
     return this.changeRoute53Record({ domainName, publicIp, action: "DELETE" })
   }
 
