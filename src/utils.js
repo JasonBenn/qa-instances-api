@@ -35,7 +35,7 @@ export const checkForIllegalStateTransitions = (prId, data) => {
 }
 
 export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
-  const copyToTmpFile = 'tee > /tmp/staging-db-backup'
+  const copyToTmpFile = 'tee > /dev/null'
   const pipeToRDS = `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `
   return local ? copyToTmpFile : pipeToRDS
 }
