@@ -3,6 +3,7 @@ import { States } from './db'
 import Promise from 'bluebird'
 import treeKill from 'tree-kill'
 import _ from 'underscore'
+import StringDecoder from 'string_decoder'
 
 const DEPLOY_INSTANCE_ONLINE_STATES = ["online"]
 const DEPLOY_INSTANCE_OFFLINE_STATES = ["stopped", "terminated"]
@@ -13,6 +14,7 @@ const DEPLOYMENT_ERROR = "failed"
 
 const MAX_POLL_INSTANCE_COUNT = 120  // 10 minutes
 const MAX_POLL_DEPLOYMENT_COUNT = 120  // 10 minutes
+const MAX_POLL_LOG_FILENAME_COUNT = 10
 const POLL_STATE_INTERVAL = 5000
 
 
@@ -23,16 +25,16 @@ export default class QaInstances {
     this.aws = aws
 
     this.runningProcesses = {}
-  }
+  }  
 
   create(prId, sha, prName) {
-    console.log("qai: create");
+    console.log("qai: create", prId, sha, prName);
 
     const hostName = getHostName(prName)
     const domainName = getDomainName(hostName)
+    const dbName = underscoreCase(prName)
 
     return this.db.create({ prId }).then(() => {
-
       this.pubsub.saveThenPublish(prId, {
         sha: sha,
         prName: prName,
@@ -40,64 +42,20 @@ export default class QaInstances {
         domainName: domainName,
         overallState: States.Starting
       }).then(() => {
+        this.runningProcesses[prId] = this.runningProcesses[prId] || {}
 
-        const dbName = underscoreCase(prName)
-        let instanceId
-        this.runningProcesses[prId] = {}
+        const dbPromise = this.createDB({ prId, dbName })
 
-        // createDB, updates dbState.
-        const dbPromise = new Promise((resolve, reject) => {
-          this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
+        this.createInstance({ prId, hostName }).then((data) => {
+          console.log("qai: this.createInstance resolved with", data)
+          const instanceId = InstanceId
+          this.startInstance({ prId, instanceId, domainName }).then(() => {
+            this.pollForIpThenCreateRoute53Record({ prId, instanceId, domainName })
 
-          this.aws.createDB(dbName).then(proc => {
-            this.runningProcesses[prId].createDB = proc
-            proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
-            this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
-            proc.on('close', this.createDBCallback)
-          })
-        })
-
-        // createInstance, updates instanceState.
-        this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
-        const createInstancePromise = this.aws.createInstance(hostName).then(({ InstanceId }) => {
-          instanceId = InstanceId
-          this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
-        })
-
-        // startInstance, updates startInstanceState.
-        createInstancePromise.then(() => {
-          this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
-          const startInstancePromise = new Promise((resolve, reject) => {
-            this.aws.startInstance(instanceId).then(() => {
-              this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
-
-              // createRoute53Record, updates route53State.
-              this.pollForPublicIp(prId, instanceId, domainName)
-            })
-          })
-
-          startInstancePromise.then(() => {
-
-            // deployInstance, updates deployInstanceState.
-            this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
-            const deployInstancePromise = new Promise((resolve, reject) => {
-              this.aws.deployInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
-                this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
-              })
-            })
+            const deployInstancePromise = this.deployInstance({ instanceId, domainName, dbName, prName })
 
             Promise.all([dbPromise, deployInstancePromise]).then(() => {
-
-              // serviceInstance, updates serviceInstanceState.
-              this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
-              const serviceInstancePromise = new Promise((resolve, reject) => {
-                this.aws.serviceInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
-                  this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
-                })
-              })
-
-              // Finally, after serviceInstance, update overallState.
-              serviceInstancePromise.then(() => {
+              this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
                 this.pubsub.saveThenPublish(prId, { overallState: States.Online })
               })
             })
@@ -110,17 +68,145 @@ export default class QaInstances {
     })
   }
 
-  pollForPublicIp(prId, instanceId, domainName) {
-    console.log("qai: pollForPublicIp")
+  createDB({ prId, dbName }) {
+    // createDB, updates dbState.
+    console.log("qai: createDB", { prId, dbName })
+    this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
+    return new Promise((resolve, reject) => {
+      this.aws.createDB(dbName).then(proc => {
+        this.runningProcesses[prId].createDB = proc
+        proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
+        this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
+        proc.on('close', this.createDBCallback)
+      })
+    })
+  }
+
+  createInstance({ prId, hostName }) {
+    // createInstance, updates instanceState.
+    console.log("qai: createInstance", { prId, hostName })
+    this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
+    return this.aws.createInstance(hostName).then(({ InstanceId }) => {
+      console.log('qai: this.aws.createInstance resolved with', arguments)
+      this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
+    })
+  }
+
+  startInstance({ prId, instanceId, domainName }) {
+    // startInstance, updates startInstanceState.
+    console.log("qai: startInstance", { prId, instanceId, domainName })
+    this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
+    return new Promise((resolve, reject) => {
+      this.aws.startInstance(instanceId).then(() => {
+        this.pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState: "offline" })
+      })
+    })
+  }
+
+  createRoute53Record({ prId, domainName, publicIp }) {
+    // createRoute53Record, updates route53State.
+    console.log("qai: createRoute53Record", { prId, domainName, publicIp })
+    this.pubsub.saveThenPublish(prId, { route53State: States.Starting, publicIp: publicIp })
+    return this.aws.createRoute53Record(domainName, publicIp).then(() => {
+      this.pubsub.saveThenPublish(prId, { route53State: States.Online })
+    })
+  }
+
+  deployInstance({ instanceId, domainName, dbName, prName }) {
+    // deployInstance, updates deployInstanceState.
+    console.log("qai: deployInstance", { instanceId, domainName, dbName, prName })
+    this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
+    return new Promise((resolve, reject) => {
+      this.aws.deployInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
+        this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
+        // getAndTailOpsworksLog(prId, hostName, uiType)  ?
+      })
+    })
+  }
+
+  serviceInstance({ prId, instanceId, domainName, dbName, prName }) {
+    // serviceInstance, updates serviceInstanceState.
+    console.log("qai: serviceInstance", { prId, instanceId, domainName, dbName, prName })
+    this.pubsub.saveThenPublish(prId, { serviceInstanceState: States.Starting })
+    return new Promise((resolve, reject) => {
+      this.aws.serviceInstance({ instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
+        this.pollDeploymentState({ prId, resolve, reject, uiType: "serviceInstance", deploymentId: DeploymentId })
+      })
+    })
+  }
+
+  redeploy(prId) {
+    this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
+    console.log("qai: redeploy", prId)
+    this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
+      this.deployInstance({ instanceId, domainName, dbName, prName }).then(() => {
+        this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
+          this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+        })
+      })
+    })
+  }
+
+  reservice(prId) {
+    this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
+    console.log("qai: reservice", prId)
+    this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
+      this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
+        this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+      })
+    })
+  }
+
+  getAndTailOpsworksLog(prId, hostName, uiType) {
+    console.log("qai: getAndTailOpsworksLogs", prId, hostName, uiType)
+
+    const filenamePromise = new Promise((resolve, reject) => {
+      this.pollForOpsworksFilename({ prId, uiType, hostName, resolve, reject })
+    })
+
+    filenamePromise.catch(err => {
+      this.pubsub.saveThenPublish(prId, { overallState: States.Error, [uiType + "State"]: States.Error, [uiType + "Error"]: err })
+    })
+
+    filenamePromise.then(filename => {
+      const proc = this.aws.tailOpsworksLog(hostName, filename)
+
+      this.runningProcesses[prId] = this.runningProcesses[prId] || {}
+      this.runningProcesses[prId][uiType + "Log"] = proc
+
+      proc.stdout.on('data', chunk => {
+        const progressUpdate = chunk.toString('utf8')
+        this.pubsub.publish(prId, { [uiType + "Log"]: progressUpdate.trim() })
+      })
+    })
+
+    // What do I return? How is this killed?
+  }
+
+  pollForOpsworksFilename({ prId, uiType, hostName, resolve, reject, pollCount = 0 }) {
+    this.pubsub.publish(prId, { [uiType + "State"]: States.Starting, [uiType + "Progress"]: `polling for opsworks log filename (${pollCount})` })
+    console.log("qai: pollForOpsworksFilename", pollCount)
+    this.aws.getOpsworksProcess(hostName).then(stdout => {
+      const lineContainingTee = /tee -a (.*)$/m.exec(stdout)
+      if (lineContainingTee) {
+        const filename = lineContainingTee[1]
+        resolve(filename)
+      } else if (pollCount >= MAX_POLL_LOG_FILENAME_COUNT) {
+        reject("timed out waiting for opsworks logfile")
+      } else {
+        setTimeout(this.pollForOpsworksFilename.bind(this, { prId, uiType, hostName, resolve, reject, pollCount: pollCount + 1 }), POLL_STATE_INTERVAL)
+      }
+    })
+  }
+
+  pollForIpThenCreateRoute53Record({ prId, instanceId, domainName }) {
+    console.log("qai: pollForIpThenCreateRoute53Record", { prId, instanceId, domainName })
     this.aws.describeInstance(instanceId).then(data => {
       const publicIp = data.Instances[0].PublicIp
       if (publicIp) {
-        this.pubsub.saveThenPublish(prId, { route53State: States.Starting, publicIp: publicIp })
-        this.aws.createRoute53Record(domainName, publicIp).then(() => {
-          this.pubsub.saveThenPublish(prId, { route53State: States.Online })
-        })
+        this.createRoute53Record({ prId, domainName, publicIp })
       } else {
-        setTimeout(this.pollForPublicIp.bind(this, prId, instanceId, domainName), POLL_STATE_INTERVAL)
+        setTimeout(this.pollForIpThenCreateRoute53Record.bind(this, { prId, instanceId, domainName }), POLL_STATE_INTERVAL)
       }
     })
   }
