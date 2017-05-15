@@ -34,6 +34,32 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     })
   })
 
+  app.post('/pulls/retry', (req, res, next) => {
+    console.log("app: post /pulls/retry");
+    let retryPromise
+    const { prId, uiType } = req.body
+
+    if (uiType === "deploy") {
+      retryPromise = qaInstances.redeploy(prId)
+    } else if (uiType === "service") {
+      retryPromise = qaInstances.reservice(prId)
+    }
+
+    retryPromise.then(() => {
+      res.status(201)
+      sendRowState(prId, res, next)
+    }).catch(err => defaultErrorHandler(err, res, next))
+  })
+
+  app.post('/pulls/redeploy', (req, res, next) => {
+    console.log("app: post /pulls/redeploy");
+    const { prId } = req.body
+    qaInstances.redeploy(prId).then(() => {
+      res.status(201)
+      sendRowState(prId, res, next)
+    }).catch(err => defaultErrorHandler(err, res, next))
+  })
+
   app.post('/pulls', (req, res, next) => {
     console.log("app: post /pulls");
     const { prId, sha, prName } = req.body
