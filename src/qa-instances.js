@@ -138,7 +138,7 @@ export default class QaInstances {
   redeploy(prId) {
     this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
     console.log("qai: redeploy", prId)
-    this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
+    return this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
       this.deployInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
         this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
           this.pubsub.saveThenPublish(prId, { overallState: States.Online })
@@ -150,7 +150,7 @@ export default class QaInstances {
   reservice(prId) {
     this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
     console.log("qai: reservice", prId)
-    this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
+    return this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
       this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
         this.pubsub.saveThenPublish(prId, { overallState: States.Online })
       })
