@@ -147,12 +147,6 @@ export default class QaInstances {
     })
   }
 
-  reservice(prId) {
-    this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
-    console.log("qai: reservice", prId)
-    return this.db.get(prId).then(({ instanceId, domainName, dbName, prName }) => {
-      this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
-        this.pubsub.saveThenPublish(prId, { overallState: States.Online })
       })
     })
   }
