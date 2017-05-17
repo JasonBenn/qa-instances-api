@@ -1,4 +1,4 @@
-import { getHostName, getDomainName, underscoreCase, getPipeDataCmd } from './utils'
+import { getDomainName, getHostName, underscoreCase, getPipeDataCmd } from './utils'
 import { States } from './db'
 import Promise from 'bluebird'
 import treeKill from 'tree-kill'
@@ -17,6 +17,10 @@ const MAX_POLL_DEPLOYMENT_COUNT = 120  // 10 minutes
 const MAX_POLL_LOG_FILENAME_COUNT = 10
 const POLL_STATE_INTERVAL = 5000
 
+// The number of (0-indexed) authorized JavaScript OAuth origins in Google Cloud Platform.
+// All 25 of the URLs are of the form "https://qa0.minervaproject.com".
+const URLS_POOL_SIZE = 25
+
 
 export default class QaInstances {
   constructor(db, aws, pubsub) {
@@ -30,42 +34,43 @@ export default class QaInstances {
   create(prId, sha, prName) {
     console.log("qai: create", prId, sha, prName);
 
-    const hostName = getHostName(prName)
-    const domainName = getDomainName(hostName)
-    const dbName = underscoreCase(prName)
+    return this.db.getLowestAvailableId().then(id => {
+      const dbName = underscoreCase(prName)
+      const hostName = this.allocateHostName(id)
 
-    return this.db.create({ prId }).then(() => {
-      this.pubsub.saveThenPublish(prId, {
-        sha: sha,
-        prName: prName,
-        hostName: hostName,
-        domainName: domainName,
-        overallState: States.Starting
-      }).then(() => {
-        this.runningProcesses[prId] = this.runningProcesses[prId] || {}
+      this.db.create({ id }).then(() => {
+        this.pubsub.saveThenPublish(prId, { prId, sha, prName, overallState: States.Starting }).then(() => {
+          this.runningProcesses[prId] = this.runningProcesses[prId] || {}
 
-        const dbPromise = this.createDB({ prId, dbName })
+          const dbPromise = this.createDB({ prId, dbName })
 
-        this.createInstance({ prId, hostName }).then((data) => {
-          console.log("qai: this.createInstance resolved with", data)
-          const instanceId = InstanceId
-          this.startInstance({ prId, instanceId, domainName }).then(() => {
-            this.pollForIpThenCreateRoute53Record({ prId, instanceId, domainName })
+          const createInstancePromise = this.createInstance({ prId, hostName })
 
-            const deployInstancePromise = this.deployInstance({ prId, instanceId, domainName, dbName, prName })
+          createInstancePromise.then((hostName, { InstanceId }) => {
+            console.log('resolved with arguments', arguments, InstanceId, hostName)
 
-            Promise.all([dbPromise, deployInstancePromise]).then(() => {
-              this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
-                this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+            const domainName = getDomainName(hostName)
+            const instanceId = InstanceId
+
+            this.startInstance({ prId, instanceId, domainName }).then(() => {
+              this.pollForIpThenCreateRoute53Record({ prId, instanceId, domainName })
+
+              const deployInstancePromise = this.deployInstance({ prId, instanceId, domainName, dbName, prName })
+
+              Promise.all([dbPromise, deployInstancePromise]).then(() => {
+                this.serviceInstance({ prId, instanceId, domainName, dbName, prName }).then(() => {
+                  this.pubsub.saveThenPublish(prId, { overallState: States.Online })
+                })
               })
             })
+
           })
 
         })
 
       })
-
     })
+
   }
 
   createDB({ prId, dbName }) {
@@ -147,8 +152,12 @@ export default class QaInstances {
     })
   }
 
-      })
-    })
+  allocateHostName(id) {
+    if (id <= URLS_POOL_SIZE) {
+      return "qa" + id
+    } else {
+      throw "Not enough instance URLs allocated! Add more authorized JS origins in Google Cloud Platform."
+    }
   }
 
   getAndTailOpsworksLog(prId, hostName, uiType) {

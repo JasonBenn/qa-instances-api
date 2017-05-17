@@ -59,7 +59,6 @@ const normalize = joinChar => str => str.toLowerCase().replace(/[\/_-]/g, joinCh
 export const hypenCase = normalize('-')
 export const underscoreCase = normalize('_')
 
-export const getHostName = prName => "qa-" + hypenCase(prName)
 export const getDomainName = hostName => hostName + ".minervaproject.com"
 
 const isSubset = (a, b) => a.every(el => b.includes(el))

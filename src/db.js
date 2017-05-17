@@ -17,10 +17,10 @@ export default class DB {
     this.db = new SQLite3.Database("db.sqlite")
   }
 
-  all() {
-    if (LOG_QUERIES) console.log('db: SELECT *');
+  all(columns="*") {
+    if (LOG_QUERIES) console.log(`db: SELECT ${columns}`);
     return new Promise((resolve, reject) => {
-      this.db.all(`SELECT * FROM pulls`, undefined, promiseCb(resolve, reject))
+      this.db.all(`SELECT ${columns} FROM pulls`, undefined, promiseCb(resolve, reject))
     })
   }
 
@@ -51,6 +51,18 @@ export default class DB {
     return new Promise((resolve, reject) => {
       if (LOG_QUERIES) console.log(`db: DELETE FROM pulls WHERE prId = ?`, prId)
       this.db.run(`DELETE FROM pulls WHERE prId = ?`, prId, promiseCb(resolve, reject))
+    })
+  }
+
+  getLowestAvailableId() {
+    return new Promise((resolve, reject) => {
+      this.all("id").then(rows => {
+        const ids = _.pluck(rows, 'id')
+        const highestId = _.max(ids)
+        const candidateIds = _.range(highestId + 1).map(id => id + 1)
+        console.log('getLowestAvailableId highestId:', highestId, 'candidateIds', candidateIds)
+        resolve(_.difference(candidateIds, ids)[0])
+      })
     })
   }
 
