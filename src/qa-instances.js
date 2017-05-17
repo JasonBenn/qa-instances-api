@@ -85,7 +85,7 @@ export default class QaInstances {
     })
   }
 
-  updateDB({ prId }) {
+  updateDB(prId) {
     this.pubsub.saveThenPublish(prId, { dbState: States.Starting, overallState: States.Starting })
     return this.db.get(prId).then(({ instanceId, dbName, prName }) => {
       this.deleteDB({ prId, dbName }).then(() => {
