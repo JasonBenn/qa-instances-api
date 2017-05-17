@@ -133,7 +133,7 @@ export default class QaInstances {
     return new Promise((resolve, reject) => {
       this.aws.deployInstance({ prId, instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
         this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
-        getAndTailOpsworksLog({ prId, hostName, uiType })
+        this.getAndTailOpsworksLog({ prId, hostName, uiType })
       })
     })
   }
