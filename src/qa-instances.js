@@ -37,20 +37,17 @@ export default class QaInstances {
     return this.db.getLowestAvailableId().then(id => {
       const dbName = underscoreCase(prName)
       const hostName = this.allocateHostName(id)
+      const domainName = getDomainName(hostName)
 
       this.db.create({ id }).then(() => {
-        this.pubsub.saveThenPublish(prId, { prId, sha, prName, overallState: States.Starting }).then(() => {
+        this.pubsub.saveThenPublish(prId, { prId, sha, prName, hostName, domainName, overallState: States.Starting }).then(() => {
           this.runningProcesses[prId] = this.runningProcesses[prId] || {}
 
           const dbPromise = this.createDB({ prId, dbName })
-
           const createInstancePromise = this.createInstance({ prId, hostName })
 
-          createInstancePromise.then((hostName, { InstanceId }) => {
-            console.log('resolved with arguments', arguments, InstanceId, hostName)
-
-            const domainName = getDomainName(hostName)
-            const instanceId = InstanceId
+          createInstancePromise.then(({ instanceId }) => {
+            console.log("qai: createInstancePromise.then resolved with", instanceId)
 
             this.startInstance({ prId, instanceId, domainName }).then(() => {
               this.pollForIpThenCreateRoute53Record({ prId, instanceId, domainName })
@@ -97,12 +94,14 @@ export default class QaInstances {
   }
 
   createInstance({ prId, hostName }) {
-    // createInstance, updates instanceState.
     console.log("qai: createInstance", { prId, hostName })
     this.pubsub.saveThenPublish(prId, { instanceState: States.Starting })
-    return this.aws.createInstance(hostName).then(({ InstanceId }) => {
-      console.log('qai: this.aws.createInstance resolved with', arguments)
-      this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
+    return new Promise((resolve, reject) => {
+      this.aws.createInstance(hostName).then(({ InstanceId }) => {
+        console.log('qai: this.aws.createInstance resolved with', InstanceId)
+        this.pubsub.saveThenPublish(prId, { instanceState: States.Online, instanceId: InstanceId })
+        resolve({ instanceId: InstanceId })
+      })
     })
   }
 
