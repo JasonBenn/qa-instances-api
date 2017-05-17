@@ -22,10 +22,7 @@ export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
   return `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `
 }
 
-export const defaultAwsCb = (err, data) => {
-  if (err) console.log(err, err.stack)
-  else console.log(data)
-}
+export const defaultAwsCb = (responseData = {}) => (params, cb) => cb(null, responseData)
 
 export const promiseCb = (resolve, reject) => (err, data) => {
   if (err) reject(err)

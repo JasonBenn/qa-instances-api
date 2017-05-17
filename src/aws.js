@@ -2,7 +2,7 @@ import { exec, spawn, execFile } from 'child_process'
 import path from 'path'
 import aws from 'aws-sdk'
 import Promise from 'bluebird'
-import { getDomainName, getPipeDataCmd } from './utils'
+import { getDomainName, getPipeDataCmd, defaultAwsCb } from './utils'
 
 
 export default class AWS {
@@ -18,15 +18,19 @@ export default class AWS {
 
   mockAws() {
     const aws = require('aws-sdk-mock')
-    const defaultCb = (responseData = {}) => (params, cb) => cb(null, responseData)
-    aws.mock('OpsWorks', 'createInstance', defaultCb({ InstanceId: "1" }))
-    aws.mock('OpsWorks', 'deleteInstance', defaultCb({}))
-    aws.mock('OpsWorks', 'startInstance', defaultCb({}))
-    aws.mock('OpsWorks', 'describeInstances', defaultCb({ Instances: [{ Status: 'online', PublicIp: '1.1.1.1' }] }))
-    aws.mock('OpsWorks', 'describeDeployments', defaultCb({ Deployments: [{ Status: 'successful' }] }))
-    aws.mock('OpsWorks', 'stopInstance', defaultCb({}))
-    aws.mock('OpsWorks', 'createDeployment', defaultCb({ DeploymentId: '000x0xxx000' }))
-    aws.mock('Route53', 'changeResourceRecordSets', defaultCb({}))
+    aws.mock('OpsWorks', 'createInstance', defaultAwsCb({ InstanceId: "1" }))
+    aws.mock('OpsWorks', 'deleteInstance', defaultAwsCb({}))
+    aws.mock('OpsWorks', 'startInstance', defaultAwsCb({}))
+    aws.mock('OpsWorks', 'describeInstances', defaultAwsCb({ Instances: [{ Status: 'online', PublicIp: '1.1.1.1' }] }))
+    aws.mock('OpsWorks', 'describeDeployments', defaultAwsCb({ Deployments: [{ Status: 'successful' }] }))
+    aws.mock('OpsWorks', 'stopInstance', defaultAwsCb({}))
+    aws.mock('OpsWorks', 'createDeployment', defaultAwsCb({ DeploymentId: '000x0xxx000' }))
+    aws.mock('Route53', 'changeResourceRecordSets', defaultAwsCb({}))
+  }
+
+  mockAwsDeletion() {
+    const aws = require('aws-sdk-mock')
+    aws.mock('OpsWorks', 'describeInstances', defaultAwsCb({ Instances: [{ Status: 'offline' }] }))
   }
 
   createDB(dbName) {

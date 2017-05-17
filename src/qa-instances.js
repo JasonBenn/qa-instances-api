@@ -23,7 +23,8 @@ const URLS_POOL_SIZE = 25
 
 
 export default class QaInstances {
-  constructor(db, aws, pubsub) {
+  constructor(config, db, aws, pubsub) {
+    this.config = config
     this.db = db
     this.pubsub = pubsub
     this.aws = aws
@@ -235,6 +236,8 @@ export default class QaInstances {
 
   delete(prId) {
     console.log("qai: delete");
+
+    if (this.config.local) this.aws.mockAwsDeletion()
 
     // Kill any running instance creation processes.
     _.each(this.runningProcesses[prId], (proc, key) => {

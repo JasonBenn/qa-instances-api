@@ -24,7 +24,7 @@ readJSON('./config/picasso.json').then(config => {
   const db = new DB()
   const aws = new AWS(config)
   const pubsub = new PubSub(config, db, http)
-  const qaInstances = new QaInstances(db, aws, pubsub)
+  const qaInstances = new QaInstances(config, db, aws, pubsub)
 
   routes(app, db, aws, pubsub, qaInstances)
 
