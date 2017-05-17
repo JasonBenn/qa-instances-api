@@ -34,6 +34,15 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     })
   })
 
+  app.post('/pulls/updateDB', (req, res, next) => {
+    console.log("app: post /pulls/updateDB");
+    const { prId } = req.body
+    qaInstances.updateDB(prId).then(() => {
+      res.status(201)
+      sendRowState(prId, res, next)
+    }).catch(err => defaultErrorHandler(err, res, next))
+  })
+
   app.post('/pulls/redeploy', (req, res, next) => {
     console.log("app: post /pulls/redeploy");
     const { prId } = req.body

@@ -87,6 +87,15 @@ export default class QaInstances {
     })
   }
 
+  updateDB({ prId }) {
+    this.pubsub.saveThenPublish(prId, { dbState: States.Starting, overallState: States.Starting })
+    return this.db.get(prId).then(({ instanceId, dbName, prName }) => {
+      this.deleteDB({ prId, dbName }).then(() => {
+        this.createDB({ prId, dbName })
+      })
+    })
+  }
+
   createInstance({ prId, hostName }) {
     // createInstance, updates instanceState.
     console.log("qai: createInstance", { prId, hostName })
@@ -249,13 +258,7 @@ export default class QaInstances {
 
     this.db.get(prId).then(({ instanceId, domainName, publicIp, dbName }) => {
 
-      // deleteDB, updates dbState.
-      const deleteDBPromise = this.aws.deleteDB(dbName).then(proc => {
-        this.pubsub.saveThenPublish(prId, { dbState: States.Stopping, dbError: null })
-        proc.on('close', () => {
-          this.pubsub.saveThenPublish(prId, { dbState: States.Offline, dbName: null })
-        })
-      })
+      const deleteDBPromise = this.deleteDB({ prId, dbName })
 
       // stopInstance, updates instanceState.
       this.pubsub.saveThenPublish(prId, { instanceState: States.Stopping, instanceError: null })
@@ -278,6 +281,15 @@ export default class QaInstances {
           this.pubsub.publish(prId, { overallState: States.Offline })
           this.db.delete(prId)
         })
+      })
+    })
+  }
+
+  deleteDB({ prId, dbName }) {
+    return this.aws.deleteDB(dbName).then(proc => {
+      this.pubsub.saveThenPublish(prId, { dbState: States.Stopping, dbError: null })
+      proc.on('close', () => {
+        this.pubsub.saveThenPublish(prId, { dbState: States.Offline, dbName: null })
       })
     })
   }
