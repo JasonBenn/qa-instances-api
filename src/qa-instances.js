@@ -199,7 +199,7 @@ export default class QaInstances {
   }
 
   pollForOpsworksFilename({ prId, uiType, hostName, resolve, reject, pollCount = 0 }) {
-    this.pubsub.publish(prId, { [uiType + "State"]: States.Starting, [uiType + "Progress"]: `polling for opsworks log filename (${pollCount})` })
+    this.pubsub.publish(prId, { [uiType + "State"]: States.Starting, [uiType + "Progress"]: `waiting for opsworks log... (${pollCount})` })
     console.log("qai: pollForOpsworksFilename", pollCount)
     this.aws.getOpsworksProcess(hostName).then(stdout => {
       const lineContainingTee = /tee -a (.*)$/m.exec(stdout)
