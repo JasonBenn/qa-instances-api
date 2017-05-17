@@ -32,7 +32,8 @@ export default class AWS {
   createDB(dbName) {
     console.log("aws: createDB", dbName);
     return new Promise((resolve, reject) => {
-      const proc = execFile(process.cwd() + "/scripts/create-qa-db.sh", null, {
+      const script = this.config.local ? "create-qa-db-local.sh" : "create-qa-db.sh"
+      const proc = execFile(process.cwd() + "/scripts/" + script, null, {
         env: { 
           dbName: dbName,
           dbHost: this.config.dbHost,

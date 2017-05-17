@@ -35,9 +35,7 @@ export const checkForIllegalStateTransitions = (prId, data) => {
 }
 
 export const getPipeDataCmd = ({local, dbHost, dbUser, dbPassword}) => {
-  const copyToTmpFile = 'tee > /dev/null'
-  const pipeToRDS = `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `
-  return local ? copyToTmpFile : pipeToRDS
+  return `mysql -h ${dbHost} -u ${dbUser} -p${dbPassword} `
 }
 
 export const defaultAwsCb = (err, data) => {
