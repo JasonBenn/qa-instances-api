@@ -204,6 +204,7 @@ export default class QaInstances {
     this.aws.getOpsworksProcess(hostName).then(stdout => {
       const lineContainingTee = /tee -a (.*)$/m.exec(stdout)
       if (lineContainingTee) {
+        this.pubsub.publish(prId, { [uiType + "Progress"]: "" })  // clear "polling..." message.
         const filename = lineContainingTee[1]
         resolve(filename)
       } else if (pollCount >= MAX_POLL_LOG_FILENAME_COUNT) {
