@@ -1,10 +1,16 @@
 import { readJSON } from '../src/utils'
 import path from 'path'
 import AWS from '../src/aws'
+import DB from '../src/db'
+import _ from 'underscore'
 
 
 readJSON('./config/picasso.json').then(config => {
   const aws = new AWS(config)
+  const db = new DB()
+
+  // db.all("id").then(data => console.log(data))
+  // db.getLowestAvailableId().then(data => console.log(data))
 
   // const domainName = "qa-jb-bogus-test-pr.minervaproject.com"
   // const publicIp = "54.245.189.101"
