@@ -30,7 +30,8 @@ export default class AWS {
 
   mockAwsDeletion() {
     const aws = require('aws-sdk-mock')
-    aws.mock('OpsWorks', 'describeInstances', defaultAwsCb({ Instances: [{ Status: 'offline' }] }))
+    aws.restore('OpsWorks', 'describeInstances')
+    aws.mock('OpsWorks', 'describeInstances', defaultAwsCb({ Instances: [{ Status: 'stopped' }] }))
   }
 
   createDB(dbName) {
