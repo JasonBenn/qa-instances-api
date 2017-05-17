@@ -81,10 +81,11 @@ export default class AWS {
   deleteDB(dbName) {
     console.log("aws: deleteDB", dbName);
     return new Promise((resolve, reject) => {
-      const proc = execFile(process.cwd() + "/scripts/destroy-qa-db.sh", null, {
+      const script = this.config.local ? "destroy-qa-db-local.sh" : "destroy-qa-db.sh"
+      const proc = execFile(process.cwd() + "/scripts/" + script, null, {
         env: {
           dbName: dbName,
-          pipeDataCmd: getPipeDataCmd(this.config) 
+          pipeDataCmd: getPipeDataCmd(this.config)
         }
       })
 
