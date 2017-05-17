@@ -38,8 +38,8 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     console.log("app: post /pulls/updateDB");
     const { prId } = req.body
     qaInstances.updateDB(prId).then(() => {
-      res.status(201)
-      sendRowState(prId, res, next)
+      res.setHeader('Content-Type', 'application/json')
+      res.sendStatus(204)
     }).catch(err => defaultErrorHandler(err, res, next))
   })
 
@@ -47,8 +47,18 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     console.log("app: post /pulls/redeploy");
     const { prId } = req.body
     qaInstances.redeploy(prId).then(() => {
-      res.status(201)
-      sendRowState(prId, res, next)
+      res.setHeader('Content-Type', 'application/json')
+      res.sendStatus(204)
+    }).catch(err => defaultErrorHandler(err, res, next))
+  })
+
+  app.post('/pulls/logs', (req, res, next) => {
+    console.log("app: post /pulls/logs");
+    const { prId } = req.body
+    qaInstances.getLogs(prId).then(logs => {
+      res.status(200)
+      res.setHeader('Content-Type', 'application/json')
+      res.send(JSON.stringify({ data: logs }))
     }).catch(err => defaultErrorHandler(err, res, next))
   })
 

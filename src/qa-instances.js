@@ -198,6 +198,24 @@ export default class QaInstances {
     // What do I return? How is this killed?
   }
 
+  getLogs(prId) {
+    return new Promise((resolve, reject) => {
+      this.db.get(prId).then(({ hostName, deployInstanceState, serviceInstanceState, deployInstanceLogFile, serviceInstanceLogFile }) => {
+        if (deployInstanceState === States.Error) {
+          this.aws.getOpsworksLog(hostName, deployInstanceLogFile).then(logs => {
+            resolve({ deployInstanceLog: logs })
+          })
+        } else if (serviceInstanceState === States.Error) {
+          this.aws.getOpsworksLog(hostName, serviceInstanceLogFile).then(logs => {
+            resolve({ serviceInstanceLog: logs })
+          })
+        } else {
+          resolve({ deployInstanceLog: "Neither deploy step is in an error state." })
+        }
+      })
+    })
+  }
+
   pollForOpsworksFilename({ prId, uiType, hostName, resolve, reject, pollCount = 0 }) {
     this.pubsub.publish(prId, { [uiType + "State"]: States.Starting, [uiType + "Progress"]: `waiting for opsworks log... (${pollCount})` })
     console.log("qai: pollForOpsworksFilename", pollCount)
