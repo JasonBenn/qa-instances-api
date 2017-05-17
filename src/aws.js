@@ -68,9 +68,14 @@ export default class AWS {
   }
 
   getOpsworksLog(hostName, filename) {
-    const args =  [`${hostName}.vpcstaging`, `sudo tail -n100 ${filename}`]
-    console.log("aws: tailOpsworksLog", args)
-    return exec("ssh", args)
+    const command =  `ssh ${hostName}.vpcstaging "sudo tail -n100 ${filename}"`
+    console.log("aws: getOpsworksLog", command)
+    return new Promise((resolve, reject) => {
+      exec(command, null, (err, stdout, stderr) => {
+        if (err) reject(err)
+        resolve(stdout)
+      })
+    })
   }
 
   deleteDB(dbName) {

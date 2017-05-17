@@ -52,4 +52,5 @@ readJSON('./config/picasso.json').then(config => {
   //   console.log(output)
   // })
 
+  // aws.getOpsworksLog("qa1", "/var/lib/aws/opsworks/chef/2017-05-17-18-55-31-01.log").then(logs => {})
 })
