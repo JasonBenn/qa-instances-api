@@ -72,11 +72,11 @@ export default class QaInstances {
   }
 
   createDB({ prId, dbName }) {
-    // createDB, updates dbState.
     console.log("qai: createDB", { prId, dbName })
     this.pubsub.saveThenPublish(prId, { dbState: States.Starting, dbName: dbName })
     return new Promise((resolve, reject) => {
       this.aws.createDB(dbName).then(proc => {
+        this.runningProcesses[prId] = this.runningProcesses[prId] || {}
         this.runningProcesses[prId].createDB = proc
         proc.stderr.on('data', progressUpdate => this.pubsub.publish(prId, { dbProgress: progressUpdate.trim() }))
         this.createDBCallback = this.onCreateDBFinish.bind(this, prId, resolve, reject)
@@ -107,7 +107,6 @@ export default class QaInstances {
   }
 
   startInstance({ prId, instanceId, domainName }) {
-    // startInstance, updates startInstanceState.
     console.log("qai: startInstance", { prId, instanceId, domainName })
     this.pubsub.saveThenPublish(prId, { startInstanceState: States.Starting })
     return new Promise((resolve, reject) => {
@@ -118,7 +117,6 @@ export default class QaInstances {
   }
 
   createRoute53Record({ prId, domainName, publicIp }) {
-    // createRoute53Record, updates route53State.
     console.log("qai: createRoute53Record", { prId, domainName, publicIp })
     this.pubsub.saveThenPublish(prId, { route53State: States.Starting, publicIp: publicIp })
     return this.aws.createRoute53Record(domainName, publicIp).then(() => {
@@ -127,7 +125,6 @@ export default class QaInstances {
   }
 
   deployInstance({ prId, instanceId, hostName, domainName, dbName, prName }) {
-    // deployInstance, updates deployInstanceState.
     console.log("qai: deployInstance", { prId, instanceId, hostName, domainName, dbName, prName })
     this.pubsub.saveThenPublish(prId, { deployInstanceState: States.Starting })
     return new Promise((resolve, reject) => {
