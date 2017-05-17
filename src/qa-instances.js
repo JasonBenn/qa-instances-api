@@ -210,7 +210,7 @@ export default class QaInstances {
             resolve({ serviceInstanceLog: logs })
           })
         } else {
-          resolve({ deployInstanceLog: "Neither deploy step is in an error state." })
+          resolve()
         }
       })
     })
