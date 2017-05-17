@@ -298,7 +298,6 @@ export default class QaInstances {
   }
 
   pollInstanceState({ prId, resolve, reject, instanceId, ignoreFirstState = "", pollCount = 0, oldStatus = "" }) {
-    console.log("qai: pollInstanceState", pollCount, "status:", oldStatus);
     pollCount += 1
 
     this.aws.describeInstance(instanceId).then(data => {
@@ -335,6 +334,7 @@ export default class QaInstances {
 
           // Also, if this is a new state, publish a progress update.
           if (status !== oldStatus) {
+            console.log("qai: pollInstanceState", pollCount, status);
             pollCount = 0
             this.pubsub.publish(prId, { startInstanceProgress: status })
           }
@@ -347,7 +347,6 @@ export default class QaInstances {
   }
 
   pollDeploymentState({ prId, resolve, reject, uiType, deploymentId, pollCount = 0 }) {
-    console.log("qai: pollDeploymentState for", uiType, pollCount);
     pollCount += 1
 
     this.aws.describeDeployment(deploymentId).then(data => {
