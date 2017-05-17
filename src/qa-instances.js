@@ -39,7 +39,7 @@ export default class QaInstances {
       const hostName = this.allocateHostName(id)
       const domainName = getDomainName(hostName)
 
-      this.db.create({ id }).then(() => {
+      this.db.create({ id, prId }).then(() => {
         this.pubsub.saveThenPublish(prId, { prId, sha, prName, hostName, domainName, overallState: States.Starting }).then(() => {
           this.runningProcesses[prId] = this.runningProcesses[prId] || {}
 
