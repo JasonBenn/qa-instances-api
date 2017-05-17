@@ -183,7 +183,7 @@ export default class QaInstances {
     })
 
     filenamePromise.then(filename => {
-      this.pubsub.saveThenPublish({ [uiType + 'LogFile']: filename })
+      this.pubsub.saveThenPublish(prId, { [uiType + 'LogFile']: filename })
       const proc = this.aws.tailOpsworksLog(hostName, filename)
 
       this.runningProcesses[prId] = this.runningProcesses[prId] || {}
