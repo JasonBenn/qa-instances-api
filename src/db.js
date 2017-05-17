@@ -58,7 +58,7 @@ export default class DB {
     return new Promise((resolve, reject) => {
       this.all("id").then(rows => {
         const ids = _.pluck(rows, 'id')
-        const highestId = _.max(ids)
+        const highestId = _.max(ids.concat(0))  // If no IDs exist, highest is 0.
         const candidateIds = _.range(highestId + 1).map(id => id + 1)
         console.log('getLowestAvailableId highestId:', highestId, 'candidateIds', candidateIds)
         resolve(_.difference(candidateIds, ids)[0])
