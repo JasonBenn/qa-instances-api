@@ -133,7 +133,7 @@ export default class QaInstances {
     return new Promise((resolve, reject) => {
       this.aws.deployInstance({ prId, instanceId, domainName, dbName, prName }).then(({ DeploymentId }) => {
         this.pollDeploymentState({ prId, resolve, reject, uiType: "deployInstance", deploymentId: DeploymentId })
-        // getAndTailOpsworksLog(prId, hostName, uiType)  ?
+        getAndTailOpsworksLog({ prId, hostName, uiType })
       })
     })
   }
@@ -169,7 +169,7 @@ export default class QaInstances {
     }
   }
 
-  getAndTailOpsworksLog(prId, hostName, uiType) {
+  getAndTailOpsworksLog({ prId, hostName, uiType }) {
     console.log("qai: getAndTailOpsworksLogs", prId, hostName, uiType)
 
     const filenamePromise = new Promise((resolve, reject) => {
@@ -181,6 +181,7 @@ export default class QaInstances {
     })
 
     filenamePromise.then(filename => {
+      this.pubsub.saveThenPublish({ [uiType + 'LogFile']: filename })
       const proc = this.aws.tailOpsworksLog(hostName, filename)
 
       this.runningProcesses[prId] = this.runningProcesses[prId] || {}
