@@ -82,10 +82,7 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     sendRowState(req.params.prId, res, next)
   })
 
-  app.delete('/pulls/:prId', (req, res, next) => {
-    const { prId } = req.params
-    console.log("app: delete /pulls/" + prId);
-
+  const deletePr = (prId, res) => {
     if (!prId) {
       res.status(400).send({ error: 'DELETE request must include prId' })
     } else {
@@ -93,6 +90,21 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
       pubsub.saveThenPublish(prId, { instanceState: 'stopping' }).then(() => {
         res.sendStatus(204)
       })
+    }
+  }
+
+  app.delete('/pulls/:prId', (req, res, next) => {
+    const { prId } = req.params
+    console.log("app: delete /pulls/" + prId);
+    deletePr(prId, res)
+  })
+
+  app.post('/pulls/delete', (req, res, next) => {
+    if (req.params.action === "closed") {
+      console.log("app: /pulls/delete from webook" + prId);
+      deletePr(req.params.number, res)
+    } else {
+      res.sendStatus(204)
     }
   })
 
