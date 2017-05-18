@@ -95,15 +95,13 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
 
   app.delete('/pulls/:prId', (req, res, next) => {
     const { prId } = req.params
-    console.log("app: delete /pulls/" + prId);
+    console.log("app: delete /pulls/" + prId)
     deletePr(prId, res)
   })
 
   app.post('/pulls/delete', (req, res, next) => {
-    console.log("**********PULLS DELETE, req.body", req.body)
-    console.log("**********PULLS DELETE, req.params", req.params)
     if (req.body.action === "closed") {
-      console.log("app: /pulls/delete from webook" + prId);
+      console.log("app: /pulls/delete from webook" + req.body.number)
       deletePr(req.body.number, res)
     } else {
       res.sendStatus(204)
