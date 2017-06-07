@@ -12,7 +12,7 @@ const DEPLOY_INSTANCE_ERROR_STATES = ["connection_lost", "setup_failed", "start_
 const DEPLOYMENT_ONLINE = "successful"
 const DEPLOYMENT_ERROR = "failed"
 
-const MAX_POLL_INSTANCE_COUNT = 120  // 10 minutes
+const MAX_POLL_INSTANCE_COUNT = 240  // 20 minutes
 const MAX_POLL_DEPLOYMENT_COUNT = 120  // 10 minutes
 const MAX_POLL_LOG_FILENAME_COUNT = 10
 const POLL_STATE_INTERVAL = 5000
