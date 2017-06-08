@@ -148,11 +148,12 @@ export default class QaInstances {
     })
   }
 
-  redeploy(prId) {
+  redeploy(prId, sha) {
     this.pubsub.saveThenPublish(prId, { overallState: States.Starting })
     console.log("qai: redeploy", prId)
     return this.db.get(prId).then(({ instanceId, hostName, domainName, dbName, prName }) => {
       this.deployInstance({ prId, instanceId, hostName, domainName, dbName, prName }).then(() => {
+        this.pubsub.saveThenPublish(prId, { sha: sha })
         this.serviceInstance({ prId, instanceId, hostName, domainName, dbName, prName }).then(() => {
           this.pubsub.saveThenPublish(prId, { overallState: States.Online })
         })

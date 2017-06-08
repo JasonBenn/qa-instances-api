@@ -45,8 +45,8 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
 
   app.post('/pulls/redeploy', (req, res, next) => {
     console.log("app: post /pulls/redeploy");
-    const { prId } = req.body
-    qaInstances.redeploy(prId).then(() => {
+    const { prId, sha } = req.body
+    qaInstances.redeploy(prId, sha).then(() => {
       res.setHeader('Content-Type', 'application/json')
       res.sendStatus(204)
     }).catch(err => defaultErrorHandler(err, res, next))
