@@ -3,7 +3,7 @@
 # QA Instances - API Server
 
 This is the API server code for the QA instances project.
-The Chrome extension is [here](https://github.com/minervaproject/qa-instances-extension).
+The Chrome extension is [here](https://github.com/jasonbenn/qa-instances-extension).
 
 # Local development
 
