@@ -30,7 +30,7 @@ export default class QaInstances {
     this.aws = aws
 
     this.runningProcesses = {}
-  }  
+  }
 
   create(prId, sha, prName) {
     console.log("qai: create", prId, sha, prName);
@@ -196,6 +196,20 @@ export default class QaInstances {
     // What do I return? How is this killed?
   }
 
+  maybeSendLog({ prId, hostName, deployInstanceState, deployInstanceLogFile, serviceInstanceState, serviceInstanceLogFile }) {
+    console.log("qai: maybeSendLog")
+    if (deployInstanceState && deployInstanceState === States.Error || deployInstanceState === States.Starting) {
+      this.aws.getOpsworksLog(hostName, deployInstanceLogFile).then(logs => {
+        this.pubsub.publish(prId, { deployInstanceLog: logs })
+      })
+    }
+    if (serviceInstanceState && serviceInstanceState === States.Error || serviceInstanceState === States.Starting) {
+      this.aws.getOpsworksLog(hostName, serviceInstanceLogFile).then(logs => {
+        this.pubsub.publish(prId, { serviceInstanceLog: logs })
+      })
+    }
+  }
+
   getLogs(prId) {
     return new Promise((resolve, reject) => {
       this.db.get(prId).then(({ hostName, deployInstanceState, serviceInstanceState, deployInstanceLogFile, serviceInstanceLogFile }) => {
@@ -265,7 +279,7 @@ export default class QaInstances {
       treeKill(proc.pid)
     })
 
-    this.pubsub.saveThenPublish(prId, { 
+    this.pubsub.saveThenPublish(prId, {
       overallState: States.Stopping,
 
       overallError: null,

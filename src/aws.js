@@ -39,7 +39,7 @@ export default class AWS {
     return new Promise((resolve, reject) => {
       const script = this.config.local ? "create-qa-db-local.sh" : "create-qa-db.sh"
       const proc = execFile(process.cwd() + "/scripts/" + script, null, {
-        env: { 
+        env: {
           dbName: dbName,
           dbHost: this.config.dbHost,
           dbUser: this.config.dbUser,

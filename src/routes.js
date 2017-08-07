@@ -4,7 +4,7 @@ import { getHostName, getDomainName, underscoreCase } from './utils'
 import 'colors'
 
 
-export const routes = (app, db, aws, pubsub, qaInstances) => {  
+export const routes = (app, db, aws, pubsub, qaInstances) => {
   const defaultErrorHandler = (err, res, next) => {
     res.status(500).send(JSON.stringify({ error: err }))
     next(err)
@@ -14,6 +14,7 @@ export const routes = (app, db, aws, pubsub, qaInstances) => {
     db.get(prId).then(row => {
       res.setHeader('Content-Type', 'application/json')
       res.send(JSON.stringify({ data: row }))
+      qaInstances.maybeSendLog(row)
     }).catch(err => {
       defaultErrorHandler(err, res, next)
     })
