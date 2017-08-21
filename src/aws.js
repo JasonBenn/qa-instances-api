@@ -177,8 +177,8 @@ export default class AWS {
         Args: {
           recipes: [
             "seminar::sanitize",
-            "seminar::service_qa_instances",
-            "seminar::singletons_qa_instances"
+            "seminar::singletons_qa_instances",
+            "seminar::service_qa_instances"
           ]
         }
       },
